@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#103b2d" />
-  <meta name="description" content="CHRISTmas in Our Hearts 2026 registration, food stub, and raffle system." />
+  <meta name="description" content="CHRISTmas in Our Hearts 2026 registration, check-in, digital stub, food, and raffle system." />
   <title>CHRISTmas in Our Hearts 2026</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
@@ -13,37 +13,72 @@
   <script src="app.js" defer></script>
 </head>
 <body>
-  <div class="app-shell">
+  <section class="login-screen" id="loginScreen">
+    <div class="login-card">
+      <div class="brand-mark large" aria-hidden="true">♥</div>
+      <p class="eyebrow">Heart Warriors Philippines Inc.</p>
+      <h1>CHRISTmas in Our Hearts 2026</h1>
+      <p class="login-sub">Digital Registration • Check-In • Food • Raffle</p>
+
+      <div id="firstSetup" hidden>
+        <div class="notice-box">
+          <b>First-time setup</b>
+          <p>Create the first local Administrator account for this device.</p>
+        </div>
+        <form id="setupForm" class="stack-form">
+          <label>Administrator Name<input id="setupName" required placeholder="Staff name" /></label>
+          <label>4-digit Admin PIN<input id="setupPin" required type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="••••" /></label>
+          <button class="primary-btn" type="submit">Create Administrator</button>
+        </form>
+      </div>
+
+      <form id="loginForm" class="stack-form">
+        <label>Staff Account<select id="loginStaff" required></select></label>
+        <label>Access PIN<input id="loginPin" required type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="••••" /></label>
+        <button class="primary-btn" type="submit">Staff Login</button>
+      </form>
+      <p class="tiny-note">Staff accounts are stored locally on this device. Do not share PINs.</p>
+    </div>
+  </section>
+
+  <div class="app-shell" id="appShell" hidden>
     <header class="topbar">
       <div class="brand-mark" aria-hidden="true">♥</div>
-      <div>
+      <div class="topbar-copy">
         <p class="eyebrow">Heart Warriors Philippines Inc.</p>
         <h1>CHRISTmas in Our Hearts 2026</h1>
         <p class="subhead">December 3, 2026 • 1:00 PM • Philippine Heart Center</p>
       </div>
-      <button class="ghost-btn install-btn" id="installBtn" hidden>Install App</button>
+      <div class="staff-session">
+        <span id="sessionStaff">—</span>
+        <small id="sessionRole">—</small>
+        <div><button class="ghost-btn install-btn" id="installBtn" hidden>Install</button><button class="ghost-btn" id="logoutBtn">Logout</button></div>
+      </div>
     </header>
 
     <main>
       <section class="stats-grid" aria-label="Event counters">
         <article class="stat-card"><span>Registered</span><strong id="statRegistered">0</strong></article>
-        <article class="stat-card"><span>Kids</span><strong id="statKids">0</strong></article>
-        <article class="stat-card"><span>Parents</span><strong id="statParents">0</strong></article>
+        <article class="stat-card"><span>Present</span><strong id="statPresent">0</strong></article>
+        <article class="stat-card"><span>Stub Released</span><strong id="statReleased">0</strong></article>
         <article class="stat-card"><span>Food Claimed</span><strong id="statFood">0</strong></article>
-        <article class="stat-card"><span>Raffle Entries</span><strong id="statRaffle">0</strong></article>
+        <article class="stat-card"><span>Raffle Active</span><strong id="statRaffle">0</strong></article>
+        <article class="stat-card"><span>Meals Remaining</span><strong id="statMeals">—</strong></article>
       </section>
 
       <nav class="module-grid" aria-label="Main modules">
-        <button class="module-btn active" data-view="register"><span>01</span><b>Registration</b><small>Add kids and parents</small></button>
-        <button class="module-btn" data-view="release"><span>02</span><b>Digital Stub Release</b><small>Open attendee pass</small></button>
-        <button class="module-btn" data-view="food"><span>03</span><b>Food Claim</b><small>One claim per person</small></button>
-        <button class="module-btn" data-view="raffle"><span>04</span><b>Raffle Claim</b><small>Kids only</small></button>
-        <button class="module-btn" data-view="draw"><span>05</span><b>Raffle Draw</b><small>Eligible kids only</small></button>
-        <button class="module-btn" data-view="records"><span>06</span><b>Records & Reports</b><small>Search, export, backup</small></button>
+        <button class="module-btn" data-view="register" data-roles="ADMIN,REGISTRATION"><span>01</span><b>Registration</b><small>Add kids and parents</small></button>
+        <button class="module-btn" data-view="checkin" data-roles="ADMIN,REGISTRATION,STUB"><span>02</span><b>Check-In</b><small>Mark attendee present</small></button>
+        <button class="module-btn" data-view="release" data-roles="ADMIN,STUB"><span>03</span><b>Digital Stub Release</b><small>Release pass after check-in</small></button>
+        <button class="module-btn" data-view="food" data-roles="ADMIN,FOOD"><span>04</span><b>Food Claim</b><small>One meal per person</small></button>
+        <button class="module-btn" data-view="raffle" data-roles="ADMIN,RAFFLE"><span>05</span><b>Raffle Claim</b><small>Kids only</small></button>
+        <button class="module-btn" data-view="draw" data-roles="ADMIN,RAFFLE"><span>06</span><b>Raffle Draw</b><small>No duplicate winners</small></button>
+        <button class="module-btn" data-view="records" data-roles="ADMIN,REGISTRATION,STUB,FOOD,RAFFLE"><span>07</span><b>Records</b><small>Search masterlist</small></button>
+        <button class="module-btn" data-view="admin" data-roles="ADMIN"><span>08</span><b>Admin & Audit</b><small>Staff, inventory, archive</small></button>
       </nav>
 
       <section class="workspace">
-        <div class="view active" id="view-register">
+        <div class="view" id="view-register">
           <div class="section-heading">
             <div><p class="eyebrow">Registration</p><h2>Register Attendee</h2></div>
             <p class="rule-note"><b>Rule:</b> Kids get Food + Raffle. Parents/Guardians get Food only.</p>
@@ -53,34 +88,46 @@
             <label>Location / Address<input id="location" name="location" required placeholder="City / Barangay / Address" /></label>
             <label>Contact Number<input id="contact" name="contact" required inputmode="tel" placeholder="09XXXXXXXXX" /></label>
             <label>Age<input id="age" name="age" required min="0" max="120" type="number" inputmode="numeric" placeholder="Age" /></label>
+            <label>Family / Household ID <small>(optional)</small><input id="familyId" name="familyId" placeholder="Leave blank to create a new Family ID" /></label>
+            <label>Linked Parent / Child <small>(optional)</small><input id="linkedPerson" name="linkedPerson" placeholder="Name of accompanying parent or child" /></label>
             <label class="full-span">Attendee Type
               <div class="segmented" role="radiogroup" aria-label="Attendee type">
                 <label><input type="radio" name="attendeeType" value="KID" checked /><span>Kid</span></label>
                 <label><input type="radio" name="attendeeType" value="PARENT" /><span>Parent / Guardian</span></label>
               </div>
             </label>
-            <label class="full-span">Linked Parent / Child <small>(optional)</small><input id="linkedPerson" name="linkedPerson" placeholder="Name of accompanying parent or child" /></label>
+            <label class="privacy-check full-span"><input type="checkbox" id="privacyConsent" required /><span>I acknowledge that the registration information will be used only for event attendance, food distribution, raffle administration, reporting, and authorized event records.</span></label>
             <div class="full-span form-actions">
-              <button class="primary-btn" type="submit">Register & Generate Digital Pass</button>
+              <button class="primary-btn" type="submit">Register Attendee</button>
               <button class="ghost-btn" type="reset">Clear</button>
             </div>
           </form>
         </div>
 
-        <div class="view" id="view-release">
-          <div class="section-heading"><div><p class="eyebrow">Digital Stub Release</p><h2>Find Attendee</h2></div></div>
-          <div class="search-row">
-            <input id="releaseSearch" placeholder="Search name, attendee code, or number" />
-            <button class="primary-btn" id="releaseSearchBtn">Search</button>
+        <div class="view" id="view-checkin">
+          <div class="section-heading"><div><p class="eyebrow">Attendance</p><h2>Check-In Attendee</h2></div><p class="rule-note">Mark the attendee present before releasing a digital stub.</p></div>
+          <div class="scanner-actions">
+            <button class="primary-btn" data-scan-target="checkin">Use Camera Scanner</button><span>or</span>
+            <input id="checkinSearch" placeholder="Name, attendee code, contact, or family ID" />
+            <button class="ghost-btn" id="checkinSearchBtn">Find</button>
           </div>
-          <div id="releaseResults" class="results-list empty-state">Search for an attendee to open the digital pass.</div>
+          <div id="checkinResults" class="results-list empty-state">No attendee selected.</div>
+        </div>
+
+        <div class="view" id="view-release">
+          <div class="section-heading"><div><p class="eyebrow">Digital Stub Release</p><h2>Release Digital Pass</h2></div><p class="rule-note">Only checked-in attendees can receive a digital stub.</p></div>
+          <div class="scanner-actions">
+            <button class="primary-btn" data-scan-target="release">Use Camera Scanner</button><span>or</span>
+            <input id="releaseSearch" placeholder="Name, attendee code, contact, or family ID" />
+            <button class="ghost-btn" id="releaseSearchBtn">Find</button>
+          </div>
+          <div id="releaseResults" class="results-list empty-state">No attendee selected.</div>
         </div>
 
         <div class="view" id="view-food">
-          <div class="section-heading"><div><p class="eyebrow">Food Claim</p><h2>Scan or Search</h2></div><p class="rule-note">Every registered person can claim food once.</p></div>
+          <div class="section-heading"><div><p class="eyebrow">Food Claim</p><h2>Scan or Search</h2></div><p class="rule-note">A released digital stub is required. One food claim per attendee.</p></div>
           <div class="scanner-actions">
-            <button class="primary-btn" data-scan-target="food">Use Camera Scanner</button>
-            <span>or</span>
+            <button class="primary-btn" data-scan-target="food">Use Camera Scanner</button><span>or</span>
             <input id="foodSearch" placeholder="Name or attendee code" />
             <button class="ghost-btn" id="foodSearchBtn">Find</button>
           </div>
@@ -88,10 +135,9 @@
         </div>
 
         <div class="view" id="view-raffle">
-          <div class="section-heading"><div><p class="eyebrow">Raffle Claim</p><h2>Kids Only</h2></div><p class="rule-note danger"><b>Parents / Guardians are never eligible for raffle.</b></p></div>
+          <div class="section-heading"><div><p class="eyebrow">Raffle Claim</p><h2>Kids Only</h2></div><p class="rule-note danger"><b>Parents / Guardians are permanently blocked from raffle.</b></p></div>
           <div class="scanner-actions">
-            <button class="primary-btn" data-scan-target="raffle">Use Camera Scanner</button>
-            <span>or</span>
+            <button class="primary-btn" data-scan-target="raffle">Use Camera Scanner</button><span>or</span>
             <input id="raffleSearch" placeholder="Name or attendee code" />
             <button class="ghost-btn" id="raffleSearchBtn">Find</button>
           </div>
@@ -99,28 +145,65 @@
         </div>
 
         <div class="view" id="view-draw">
-          <div class="section-heading"><div><p class="eyebrow">Raffle Draw</p><h2>Draw From Claimed Kid Entries</h2></div><p class="rule-note">Only kids whose raffle entry has been activated can be drawn.</p></div>
+          <div class="section-heading"><div><p class="eyebrow">Raffle Draw</p><h2>Kids-Only Draw</h2></div><p class="rule-note">Only activated kid entries are included. Previous winners cannot win again.</p></div>
           <div class="draw-stage">
             <div class="draw-name" id="drawName">Ready</div>
             <div class="draw-meta" id="drawMeta">No winner drawn yet.</div>
             <button class="primary-btn large" id="drawBtn">Draw Winner</button>
           </div>
+          <div class="subsection"><h3>Winner History</h3><div id="winnerHistory" class="winner-history empty-state">No winners yet.</div></div>
         </div>
 
         <div class="view" id="view-records">
-          <div class="section-heading"><div><p class="eyebrow">Records & Reports</p><h2>Attendee Masterlist</h2></div></div>
+          <div class="section-heading"><div><p class="eyebrow">Records</p><h2>Attendee Masterlist</h2></div></div>
           <div class="records-toolbar">
-            <input id="recordsSearch" placeholder="Search records" />
+            <input id="recordsSearch" placeholder="Search name, code, number, family ID" />
             <select id="recordsFilter" aria-label="Filter attendee type"><option value="ALL">All attendees</option><option value="KID">Kids</option><option value="PARENT">Parents / Guardians</option></select>
             <button class="ghost-btn" id="exportCsvBtn">Export CSV</button>
             <button class="ghost-btn" id="backupBtn">Backup JSON</button>
-            <label class="ghost-btn file-btn">Restore JSON<input type="file" id="restoreInput" accept="application/json" /></label>
+            <label class="ghost-btn file-btn admin-only-inline">Restore JSON<input type="file" id="restoreInput" accept="application/json" /></label>
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Code</th><th>Name</th><th>Type</th><th>Age</th><th>Location</th><th>Contact</th><th>Food</th><th>Raffle</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Code</th><th>Name</th><th>Type</th><th>Family</th><th>Present</th><th>Stub</th><th>Food</th><th>Raffle</th><th>Actions</th></tr></thead>
               <tbody id="recordsBody"></tbody>
             </table>
+          </div>
+        </div>
+
+        <div class="view" id="view-admin">
+          <div class="section-heading"><div><p class="eyebrow">Administrator</p><h2>Admin & Audit Center</h2></div><p class="rule-note danger">Administrative actions affect event records on this device.</p></div>
+          <div class="admin-grid">
+            <section class="admin-card">
+              <h3>Food Inventory</h3>
+              <p>Set the total number of meals available.</p>
+              <div class="inline-form"><input id="foodCapacity" type="number" min="0" placeholder="Total meals" /><button class="primary-btn" id="saveFoodCapacityBtn">Save</button></div>
+            </section>
+            <section class="admin-card">
+              <h3>Add Staff Account</h3>
+              <form id="staffForm" class="stack-form compact">
+                <input id="newStaffName" required placeholder="Staff name" />
+                <select id="newStaffRole"><option value="REGISTRATION">Registration + Check-In</option><option value="STUB">Digital Stub Release</option><option value="FOOD">Food Claiming</option><option value="RAFFLE">Raffle Claiming / Draw</option><option value="ADMIN">Administrator</option></select>
+                <input id="newStaffPin" required type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="4-digit PIN" />
+                <button class="primary-btn" type="submit">Add Staff</button>
+              </form>
+              <div id="staffList" class="staff-list"></div>
+            </section>
+            <section class="admin-card">
+              <h3>Device Sync Status</h3>
+              <div class="sync-status"><span class="status-dot"></span><b>Local device storage</b></div>
+              <p>This GitHub Pages build works offline and syncs open tabs on this same browser. Different phones do not live-sync without a shared backend.</p>
+              <button class="ghost-btn" id="requestPersistBtn">Protect Offline Storage</button>
+            </section>
+            <section class="admin-card danger-card">
+              <h3>Event Closeout</h3>
+              <p>Export a full archive before clearing records.</p>
+              <div class="form-actions"><button class="ghost-btn" id="fullArchiveBtn">Export Full Archive</button><button class="danger-btn" id="clearEventBtn">Clear Event Data</button></div>
+            </section>
+          </div>
+          <div class="subsection">
+            <div class="section-heading compact-heading"><div><h3>Audit Trail</h3></div><button class="ghost-btn" id="exportAuditBtn">Export Audit CSV</button></div>
+            <div class="table-wrap"><table><thead><tr><th>Time</th><th>Staff</th><th>Role</th><th>Action</th><th>Attendee</th><th>Details</th></tr></thead><tbody id="auditBody"></tbody></table></div>
           </div>
         </div>
       </section>
@@ -136,11 +219,14 @@
       <div id="qrCode" class="qr-box" aria-label="QR code"></div>
       <h3 id="passName"></h3>
       <p id="passDetails"></p>
+      <p class="family-line" id="passFamily"></p>
       <div class="eligibility-grid">
-        <div><span>FOOD</span><b id="passFood">ELIGIBLE</b></div>
+        <div><span>CHECK-IN</span><b id="passCheckin">—</b></div>
+        <div><span>DIGITAL STUB</span><b id="passReleased">—</b></div>
+        <div><span>FOOD</span><b id="passFood">—</b></div>
         <div><span>RAFFLE</span><b id="passRaffle">—</b></div>
       </div>
-      <p class="small-note">Present this pass to staff. Claims are recorded once only.</p>
+      <p class="small-note">Claims are recorded once only. Parents/Guardians are not eligible for raffle.</p>
     </div>
     <div class="dialog-actions"><button class="primary-btn" id="printPassBtn">Print / Save Pass</button></div>
   </dialog>
