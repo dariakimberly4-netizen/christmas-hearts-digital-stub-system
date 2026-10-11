@@ -1,238 +1,79 @@
-const STORAGE_KEY='christmasHearts2026.attendees.v1';
-const WINNERS_KEY='christmasHearts2026.winners.v1';
-let attendees=loadJson(STORAGE_KEY,[]);
-let winners=loadJson(WINNERS_KEY,[]);
-let deferredInstallPrompt=null;
-let scanStream=null;
-let scanFrame=null;
-let currentScanTarget=null;
-
-const $=(id)=>document.getElementById(id);
-const $$=(selector)=>[...document.querySelectorAll(selector)];
-
-function loadJson(key,fallback){
-  try{return JSON.parse(localStorage.getItem(key))??fallback}catch{return fallback}
-}
-function save(){
-  localStorage.setItem(STORAGE_KEY,JSON.stringify(attendees));
-  localStorage.setItem(WINNERS_KEY,JSON.stringify(winners));
-  updateStats();
-  renderRecords();
-}
+const KEYS={attendees:'christmasHearts2026.attendees.v1',winners:'christmasHearts2026.winners.v1',audit:'christmasHearts2026.audit.v1',staff:'christmasHearts2026.staff.v1',settings:'christmasHearts2026.settings.v1'};
+let attendees=loadJson(KEYS.attendees,[]).map(normalizeAttendee);
+let winners=loadJson(KEYS.winners,[]);
+let audit=loadJson(KEYS.audit,[]);
+let staff=loadJson(KEYS.staff,[]);
+let settings=loadJson(KEYS.settings,{foodCapacity:0});
+let session=loadJson('christmasHearts2026.session',null,true);
+let deferredInstallPrompt=null,scanStream=null,scanFrame=null,currentScanTarget=null;
+const $=id=>document.getElementById(id), $$=s=>[...document.querySelectorAll(s)];
+function loadJson(k,f,s=false){try{return JSON.parse((s?sessionStorage:localStorage).getItem(k))??f}catch{return f}}
+function store(k,v,s=false){(s?sessionStorage:localStorage).setItem(k,JSON.stringify(v))}
+function save(){store(KEYS.attendees,attendees);store(KEYS.winners,winners);store(KEYS.audit,audit);store(KEYS.staff,staff);store(KEYS.settings,settings);updateStats();renderRecords();renderWinners();renderAudit();renderStaff()}
+function normalizeAttendee(a){return {...a,familyId:a.familyId||'',registeredBy:a.registeredBy||'Legacy',checkedInAt:a.checkedInAt||null,checkedInBy:a.checkedInBy||null,stubReleasedAt:a.stubReleasedAt||null,stubReleasedBy:a.stubReleasedBy||null,foodClaimedAt:a.foodClaimedAt||null,foodClaimedBy:a.foodClaimedBy||null,raffleClaimedAt:a.raffleClaimedAt||null,raffleClaimedBy:a.raffleClaimedBy||null,privacyConsent:a.privacyConsent!==false}}
 function nowIso(){return new Date().toISOString()}
-function humanTime(iso){if(!iso)return 'Not claimed';return new Date(iso).toLocaleString([], {dateStyle:'medium',timeStyle:'short'})}
-function normalize(s){return String(s||'').trim().toLowerCase()}
-function makeCode(){
-  const date='1203';
-  let code='';
-  do{code=`CH-${date}-${Math.floor(1000+Math.random()*9000)}`}while(attendees.some(a=>a.code===code));
-  return code;
-}
-function toast(message){
-  const el=$('toast');el.textContent=message;el.classList.add('show');
-  clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),2800);
-}
-function escapeHtml(value){return String(value??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
-function typeLabel(type){return type==='KID'?'Kid':'Parent / Guardian'}
-function raffleStatus(a){
-  if(a.type==='PARENT')return 'Not eligible';
-  return a.raffleClaimedAt?'Activated':'Eligible';
-}
-function searchAttendees(query,filter='ALL'){
-  const q=normalize(query);
-  return attendees.filter(a=>{
-    const matchesFilter=filter==='ALL'||a.type===filter;
-    if(!matchesFilter)return false;
-    if(!q)return true;
-    return [a.code,a.fullName,a.location,a.contact,a.linkedPerson].some(v=>normalize(v).includes(q));
-  });
-}
-function updateStats(){
-  $('statRegistered').textContent=attendees.length;
-  $('statKids').textContent=attendees.filter(a=>a.type==='KID').length;
-  $('statParents').textContent=attendees.filter(a=>a.type==='PARENT').length;
-  $('statFood').textContent=attendees.filter(a=>a.foodClaimedAt).length;
-  $('statRaffle').textContent=attendees.filter(a=>a.type==='KID'&&a.raffleClaimedAt).length;
-}
-
-function showView(name){
-  $$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${name}`));
-  $$('.module-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===name));
-  if(name==='records')renderRecords();
-}
-$$('.module-btn').forEach(btn=>btn.addEventListener('click',()=>showView(btn.dataset.view)));
-
-$('registrationForm').addEventListener('submit',(e)=>{
-  e.preventDefault();
-  const form=new FormData(e.currentTarget);
-  const fullName=String(form.get('fullName')||'').trim();
-  const location=String(form.get('location')||'').trim();
-  const contact=String(form.get('contact')||'').trim();
-  const age=Number(form.get('age'));
-  const type=String(form.get('attendeeType')||'KID');
-  const linkedPerson=String(form.get('linkedPerson')||'').trim();
-  if(!fullName||!location||!contact||!Number.isFinite(age)){toast('Please complete all required fields.');return}
-  const duplicate=attendees.find(a=>normalize(a.fullName)===normalize(fullName)&&normalize(a.contact)===normalize(contact));
-  if(duplicate&&!confirm(`${duplicate.fullName} with the same contact number is already registered. Register another record anyway?`))return;
-  const attendee={id:crypto.randomUUID?.()||`${Date.now()}-${Math.random()}`,code:makeCode(),fullName,location,contact,age,type,linkedPerson,registeredAt:nowIso(),foodClaimedAt:null,raffleClaimedAt:null};
-  attendees.unshift(attendee);save();e.currentTarget.reset();
-  const kidRadio=document.querySelector('input[name="attendeeType"][value="KID"]');if(kidRadio)kidRadio.checked=true;
-  openPass(attendee.id);toast(`${fullName} registered successfully.`);
-});
-
-function resultCard(a,mode){
-  const foodTag=a.foodClaimedAt?`Food claimed ${humanTime(a.foodClaimedAt)}`:'Food eligible';
-  const raffleTag=a.type==='PARENT'?'Raffle not eligible':(a.raffleClaimedAt?'Raffle activated':'Raffle eligible');
-  let actions=`<button class="ghost-btn" data-action="pass" data-id="${a.id}">Open Pass</button>`;
-  if(mode==='food')actions=`<button class="primary-btn claim-btn" data-action="claim-food" data-id="${a.id}" ${a.foodClaimedAt?'disabled':''}>${a.foodClaimedAt?'Already Claimed':'Claim Food'}</button><button class="ghost-btn" data-action="pass" data-id="${a.id}">Pass</button>`;
-  if(mode==='raffle')actions=a.type==='PARENT'
-    ?`<button class="primary-btn claim-btn" disabled>Parent — No Raffle</button><button class="ghost-btn" data-action="pass" data-id="${a.id}">Pass</button>`
-    :`<button class="primary-btn claim-btn" data-action="claim-raffle" data-id="${a.id}" ${a.raffleClaimedAt?'disabled':''}>${a.raffleClaimedAt?'Entry Activated':'Activate Raffle Entry'}</button><button class="ghost-btn" data-action="pass" data-id="${a.id}">Pass</button>`;
-  return `<article class="result-card"><div><h3>${escapeHtml(a.fullName)} <span class="tag ${a.type==='PARENT'?'red':''}">${typeLabel(a.type)}</span></h3><p>${escapeHtml(a.code)} • Age ${a.age} • ${escapeHtml(a.location)}</p><p>${escapeHtml(a.contact)}${a.linkedPerson?` • Linked: ${escapeHtml(a.linkedPerson)}`:''}</p><div class="tag-row"><span class="tag">${escapeHtml(foodTag)}</span><span class="tag ${a.type==='PARENT'?'red':'gold'}">${escapeHtml(raffleTag)}</span></div></div><div class="result-actions">${actions}</div></article>`;
-}
-function renderSearchResults(targetId,query,mode){
-  const list=searchAttendees(query);
-  const target=$(targetId);
-  target.classList.remove('empty-state');
-  if(!list.length){target.classList.add('empty-state');target.textContent='No matching attendee found.';return}
-  target.innerHTML=list.slice(0,20).map(a=>resultCard(a,mode)).join('');
-}
-function bindSearch(inputId,buttonId,targetId,mode){
-  const run=()=>renderSearchResults(targetId,$(inputId).value,mode);
-  $(buttonId).addEventListener('click',run);
-  $(inputId).addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();run()}});
-}
-bindSearch('releaseSearch','releaseSearchBtn','releaseResults','release');
-bindSearch('foodSearch','foodSearchBtn','foodResults','food');
-bindSearch('raffleSearch','raffleSearchBtn','raffleResults','raffle');
-
-function attendeeById(id){return attendees.find(a=>a.id===id)}
-function attendeeByCode(code){
-  const cleaned=String(code||'').trim().replace(/^CHRISTMASHEARTS\|/i,'');
-  return attendees.find(a=>normalize(a.code)===normalize(cleaned));
-}
-function claimFood(id){
-  const a=attendeeById(id);if(!a)return;
-  if(a.foodClaimedAt){toast(`Food already claimed at ${humanTime(a.foodClaimedAt)}.`);return}
-  a.foodClaimedAt=nowIso();save();toast(`Food claimed for ${a.fullName}.`);refreshCurrentResults(a);
-}
-function claimRaffle(id){
-  const a=attendeeById(id);if(!a)return;
-  if(a.type==='PARENT'){toast('Parents / Guardians are not eligible for raffle.');return}
-  if(a.raffleClaimedAt){toast(`Raffle entry already activated at ${humanTime(a.raffleClaimedAt)}.`);return}
-  a.raffleClaimedAt=nowIso();save();toast(`Raffle entry activated for ${a.fullName}.`);refreshCurrentResults(a);
-}
-function refreshCurrentResults(a){
-  if($('view-food').classList.contains('active'))renderSearchResults('foodResults',a.code,'food');
-  if($('view-raffle').classList.contains('active'))renderSearchResults('raffleResults',a.code,'raffle');
-  if($('view-release').classList.contains('active'))renderSearchResults('releaseResults',a.code,'release');
-}
-document.addEventListener('click',e=>{
-  const btn=e.target.closest('[data-action]');if(!btn)return;
-  const {action,id}=btn.dataset;
-  if(action==='pass')openPass(id);
-  if(action==='claim-food')claimFood(id);
-  if(action==='claim-raffle')claimRaffle(id);
-  if(action==='delete'){const a=attendeeById(id);if(a&&confirm(`Delete ${a.fullName}? This cannot be undone.`)){attendees=attendees.filter(x=>x.id!==id);winners=winners.filter(w=>w.id!==id);save();toast('Record deleted.')}}
-});
-
-function openPass(id){
-  const a=attendeeById(id);if(!a)return;
-  $('passCode').textContent=a.code;
-  $('passName').textContent=a.fullName;
-  $('passDetails').textContent=`${typeLabel(a.type)} • Age ${a.age} • ${a.location}`;
-  $('passFood').textContent=a.foodClaimedAt?'CLAIMED':'ELIGIBLE';
-  $('passRaffle').textContent=a.type==='PARENT'?'NOT ELIGIBLE':(a.raffleClaimedAt?'ACTIVE':'ELIGIBLE');
-  const qr=$('qrCode');qr.innerHTML='';
-  const payload=`CHRISTMASHEARTS|${a.code}`;
-  if(window.QRCode){new QRCode(qr,{text:payload,width:190,height:190,colorDark:'#103b2d',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});}
-  else{qr.innerHTML=`<div style="font-weight:900;text-align:center;padding:20px">${escapeHtml(a.code)}<br><small>QR unavailable offline until first online load.</small></div>`}
-  $('passDialog').showModal();
-}
-$('closePassBtn').addEventListener('click',()=>$('passDialog').close());
-$('printPassBtn').addEventListener('click',()=>window.print());
-
-function renderRecords(){
-  const q=$('recordsSearch')?.value||'';const filter=$('recordsFilter')?.value||'ALL';
-  const list=searchAttendees(q,filter);
-  $('recordsBody').innerHTML=list.length?list.map(a=>`<tr><td><b>${escapeHtml(a.code)}</b></td><td>${escapeHtml(a.fullName)}</td><td>${typeLabel(a.type)}</td><td>${a.age}</td><td>${escapeHtml(a.location)}</td><td>${escapeHtml(a.contact)}</td><td>${a.foodClaimedAt?'✅ Claimed':'Eligible'}</td><td>${a.type==='PARENT'?'🚫 No raffle':(a.raffleClaimedAt?'✅ Active':'Eligible')}</td><td><button class="mini-btn" data-action="pass" data-id="${a.id}">Pass</button><button class="mini-btn" data-action="delete" data-id="${a.id}">Delete</button></td></tr>`).join(''):`<tr><td colspan="9" style="text-align:center;color:#777;padding:28px">No records found.</td></tr>`;
-}
-$('recordsSearch').addEventListener('input',renderRecords);
-$('recordsFilter').addEventListener('change',renderRecords);
-
-function csvEscape(v){const s=String(v??'');return /[",\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s}
-$('exportCsvBtn').addEventListener('click',()=>{
-  const headers=['Code','Full Name','Type','Age','Location','Contact Number','Linked Person','Registered At','Food Claimed At','Raffle Status','Raffle Claimed At'];
-  const rows=attendees.map(a=>[a.code,a.fullName,typeLabel(a.type),a.age,a.location,a.contact,a.linkedPerson,humanTime(a.registeredAt),humanTime(a.foodClaimedAt),raffleStatus(a),humanTime(a.raffleClaimedAt)]);
-  const csv=[headers,...rows].map(r=>r.map(csvEscape).join(',')).join('\n');
-  downloadBlob(new Blob([csv],{type:'text/csv;charset=utf-8'}),'christmas-hearts-2026-attendees.csv');toast('CSV exported.');
-});
-$('backupBtn').addEventListener('click',()=>{
-  const payload={event:'CHRISTmas in Our Hearts 2026',exportedAt:nowIso(),attendees,winners};
-  downloadBlob(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),'christmas-hearts-2026-backup.json');toast('Backup downloaded.');
-});
-$('restoreInput').addEventListener('change',async e=>{
-  const file=e.target.files?.[0];if(!file)return;
-  try{
-    const data=JSON.parse(await file.text());
-    if(!Array.isArray(data.attendees))throw new Error('Invalid backup');
-    if(!confirm(`Restore ${data.attendees.length} attendee records? This will replace the current data on this device.`))return;
-    attendees=data.attendees;winners=Array.isArray(data.winners)?data.winners:[];save();toast('Backup restored.');
-  }catch{toast('Could not restore this file.');}
-  e.target.value='';
-});
-function downloadBlob(blob,filename){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
-
-$('drawBtn').addEventListener('click',()=>{
-  const eligible=attendees.filter(a=>a.type==='KID'&&a.raffleClaimedAt&&!winners.some(w=>w.id===a.id));
-  if(!eligible.length){
-    const all=attendees.filter(a=>a.type==='KID'&&a.raffleClaimedAt);
-    $('drawName').textContent=all.length?'All entries drawn':'No active entries';
-    $('drawMeta').textContent=all.length?'Every activated kid entry has already won.':'Activate at least one kid raffle entry first.';return;
-  }
-  $('drawBtn').disabled=true;let ticks=0;
-  const spin=setInterval(()=>{
-    const temp=eligible[Math.floor(Math.random()*eligible.length)];$('drawName').textContent=temp.fullName;ticks++;
-    if(ticks>=18){clearInterval(spin);const winner=eligible[Math.floor(Math.random()*eligible.length)];winners.push({id:winner.id,code:winner.code,name:winner.fullName,drawnAt:nowIso()});save();$('drawName').textContent=winner.fullName;$('drawMeta').textContent=`${winner.code} • ${winner.location}`;$('drawBtn').disabled=false;toast('Winner recorded.');}
-  },80);
-});
-
-$$('[data-scan-target]').forEach(btn=>btn.addEventListener('click',()=>openScanner(btn.dataset.scanTarget)));
-async function openScanner(target){
-  currentScanTarget=target;$('scannerTitle').textContent=target==='food'?'Scan for Food Claim':'Scan for Raffle Claim';$('scannerStatus').textContent='Starting camera…';$('manualScanCode').value='';$('scannerDialog').showModal();
-  if(!('BarcodeDetector' in window)){ $('scannerStatus').textContent='Camera QR detection is not supported in this browser. Enter the attendee code below.';return; }
-  try{
-    const formats=await BarcodeDetector.getSupportedFormats();if(!formats.includes('qr_code'))throw new Error('QR not supported');
-    const detector=new BarcodeDetector({formats:['qr_code']});
-    scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
-    $('scannerVideo').srcObject=scanStream;await $('scannerVideo').play();$('scannerStatus').textContent='Point the camera at the attendee QR code.';
-    const detect=async()=>{
-      if(!$('scannerDialog').open)return;
-      try{const codes=await detector.detect($('scannerVideo'));if(codes.length){handleScannedValue(codes[0].rawValue);return}}catch{}
-      scanFrame=requestAnimationFrame(detect);
-    };detect();
-  }catch(err){$('scannerStatus').textContent='Camera unavailable. Enter the attendee code below.';}
-}
-function closeScanner(){
-  if(scanFrame)cancelAnimationFrame(scanFrame);scanFrame=null;
-  if(scanStream){scanStream.getTracks().forEach(t=>t.stop());scanStream=null}
-  if($('scannerDialog').open)$('scannerDialog').close();
-}
-$('closeScannerBtn').addEventListener('click',closeScanner);
-$('scannerDialog').addEventListener('close',()=>{if(scanStream){scanStream.getTracks().forEach(t=>t.stop());scanStream=null}});
-$('manualScanBtn').addEventListener('click',()=>handleScannedValue($('manualScanCode').value));
-$('manualScanCode').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();handleScannedValue(e.currentTarget.value)}});
-function handleScannedValue(value){
-  const a=attendeeByCode(value);if(!a){$('scannerStatus').textContent='Attendee code not found. Try again.';return}
-  closeScanner();
-  if(currentScanTarget==='food'){showView('food');$('foodSearch').value=a.code;renderSearchResults('foodResults',a.code,'food')}
-  else{showView('raffle');$('raffleSearch').value=a.code;renderSearchResults('raffleResults',a.code,'raffle')}
-  if(currentScanTarget==='food'&&!a.foodClaimedAt)toast(`Ready to claim food for ${a.fullName}.`);
-  if(currentScanTarget==='raffle'&&a.type==='PARENT')toast('Parent / Guardian — not eligible for raffle.');
-}
-
-window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstallPrompt=e;$('installBtn').hidden=false});
-$('installBtn').addEventListener('click',async()=>{if(!deferredInstallPrompt)return;deferredInstallPrompt.prompt();await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;$('installBtn').hidden=true});
-if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}))}
-
-updateStats();renderRecords();
+function humanTime(v){return v?new Date(v).toLocaleString([], {dateStyle:'medium',timeStyle:'short'}):'—'}
+function norm(v){return String(v||'').trim().toLowerCase()}
+function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+function toast(m){const e=$('toast');e.textContent=m;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),2800)}
+function typeLabel(t){return t==='KID'?'Kid':'Parent / Guardian'}
+function roleLabel(r){return ({ADMIN:'Administrator',REGISTRATION:'Registration',STUB:'Stub Release',FOOD:'Food Claiming',RAFFLE:'Raffle'})[r]||r}
+function makeCode(){let c;do{c=`CH-1203-${Math.floor(1000+Math.random()*9000)}`}while(attendees.some(a=>a.code===c));return c}
+function makeFamilyId(){let c;do{c=`FAM-${Math.floor(1000+Math.random()*9000)}`}while(attendees.some(a=>a.familyId===c));return c}
+function currentStaff(){return session?.name||'Unknown'}
+function currentRole(){return session?.role||'UNKNOWN'}
+function logAction(action,a=null,details=''){audit.unshift({id:crypto.randomUUID?.()||String(Date.now()+Math.random()),at:nowIso(),staff:currentStaff(),role:currentRole(),action,attendeeId:a?.id||null,code:a?.code||'',name:a?.fullName||'',details});if(audit.length>3000)audit.length=3000;store(KEYS.audit,audit);renderAudit()}
+async function hashPin(pin){if(crypto.subtle){const b=new TextEncoder().encode(pin);const d=await crypto.subtle.digest('SHA-256',b);return [...new Uint8Array(d)].map(x=>x.toString(16).padStart(2,'0')).join('')}return btoa(pin)}
+function setSession(s){session=s;store('christmasHearts2026.session',s,true)}
+function logout(){session=null;sessionStorage.removeItem('christmasHearts2026.session');location.reload()}
+function refreshLogin(){const first=!staff.length;$('firstSetup').hidden=!first;$('loginForm').hidden=first;if(!first){$('loginStaff').innerHTML=staff.map(s=>`<option value="${s.id}">${esc(s.name)} — ${roleLabel(s.role)}</option>`).join('')}}
+$('setupForm').addEventListener('submit',async e=>{e.preventDefault();const name=$('setupName').value.trim(),pin=$('setupPin').value;if(!/^\d{4}$/.test(pin))return toast('Use a 4-digit PIN.');staff=[{id:crypto.randomUUID?.()||String(Date.now()),name,role:'ADMIN',pinHash:await hashPin(pin),createdAt:nowIso()}];store(KEYS.staff,staff);setSession({id:staff[0].id,name,role:'ADMIN'});logAction('FIRST ADMIN CREATED',null,'Local device setup');enterApp()});
+$('loginForm').addEventListener('submit',async e=>{e.preventDefault();const s=staff.find(x=>x.id===$('loginStaff').value);if(!s)return;const h=await hashPin($('loginPin').value);if(h!==s.pinHash)return toast('Incorrect PIN.');setSession({id:s.id,name:s.name,role:s.role});enterApp()});
+$('logoutBtn').addEventListener('click',logout);
+function enterApp(){if(!session){$('loginScreen').hidden=false;$('appShell').hidden=true;refreshLogin();return}$('loginScreen').hidden=true;$('appShell').hidden=false;$('sessionStaff').textContent=session.name;$('sessionRole').textContent=roleLabel(session.role);$$('[data-roles]').forEach(b=>b.hidden=!b.dataset.roles.split(',').includes(session.role));$$('.admin-only-inline').forEach(e=>e.hidden=session.role!=='ADMIN');const first=$$('[data-roles]').find(b=>!b.hidden);if(first)showView(first.dataset.view);updateStats();renderRecords();renderWinners();renderAudit();renderStaff()}
+function showView(name){$$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${name}`));$$('.module-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===name));if(name==='records')renderRecords();if(name==='admin'){renderAudit();renderStaff();$('foodCapacity').value=settings.foodCapacity||''}}
+$$('.module-btn').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));
+function searchAttendees(q,filter='ALL'){q=norm(q);return attendees.filter(a=>(filter==='ALL'||a.type===filter)&&(!q||[a.code,a.fullName,a.location,a.contact,a.linkedPerson,a.familyId].some(v=>norm(v).includes(q))))}
+function updateStats(){const food=attendees.filter(a=>a.foodClaimedAt).length;$('statRegistered').textContent=attendees.length;$('statPresent').textContent=attendees.filter(a=>a.checkedInAt).length;$('statReleased').textContent=attendees.filter(a=>a.stubReleasedAt).length;$('statFood').textContent=food;$('statRaffle').textContent=attendees.filter(a=>a.type==='KID'&&a.raffleClaimedAt).length;$('statMeals').textContent=settings.foodCapacity?Math.max(settings.foodCapacity-food,0):'—'}
+$('registrationForm').addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.currentTarget),fullName=String(f.get('fullName')||'').trim(),location=String(f.get('location')||'').trim(),contact=String(f.get('contact')||'').trim(),age=Number(f.get('age')),type=String(f.get('attendeeType')||'KID'),linkedPerson=String(f.get('linkedPerson')||'').trim(),familyId=String(f.get('familyId')||'').trim().toUpperCase()||makeFamilyId();if(!fullName||!location||!contact||!Number.isFinite(age)||!$('privacyConsent').checked)return toast('Complete all required fields and privacy acknowledgement.');const dup=attendees.find(a=>norm(a.fullName)===norm(fullName)&&a.age===age||norm(a.contact)===norm(contact)&&norm(a.fullName)===norm(fullName));if(dup&&!confirm(`Possible duplicate found: ${dup.fullName} (${dup.code}). Register anyway?`))return;const a=normalizeAttendee({id:crypto.randomUUID?.()||String(Date.now()),code:makeCode(),fullName,location,contact,age,type,linkedPerson,familyId,registeredAt:nowIso(),registeredBy:currentStaff(),privacyConsent:true});attendees.unshift(a);logAction('REGISTERED',a,`Family ${familyId}`);save();e.currentTarget.reset();document.querySelector('input[name="attendeeType"][value="KID"]').checked=true;toast(`${fullName} registered. Family ID: ${familyId}`);renderSearchResults('checkinResults',a.code,'checkin')});
+function statusTags(a){return `<div class="tag-row"><span class="tag">${a.checkedInAt?'Present':'Not checked in'}</span><span class="tag ${a.stubReleasedAt?'gold':''}">${a.stubReleasedAt?'Stub released':'Stub pending'}</span><span class="tag">${a.foodClaimedAt?'Food claimed':'Food pending'}</span><span class="tag ${a.type==='PARENT'?'red':'gold'}">${a.type==='PARENT'?'No raffle':(a.raffleClaimedAt?'Raffle active':'Raffle pending')}</span></div>`}
+function resultCard(a,mode){let action='';if(mode==='checkin')action=`<button class="primary-btn" data-action="checkin" data-id="${a.id}" ${a.checkedInAt?'disabled':''}>${a.checkedInAt?'Checked In':'Mark Present'}</button>`;if(mode==='release')action=`<button class="primary-btn" data-action="release" data-id="${a.id}" ${a.stubReleasedAt?'disabled':''}>${a.stubReleasedAt?'Stub Released':'Release Digital Stub'}</button>`;if(mode==='food')action=`<button class="primary-btn" data-action="food" data-id="${a.id}" ${a.foodClaimedAt?'disabled':''}>${a.foodClaimedAt?'Food Claimed':'Claim Food'}</button>`;if(mode==='raffle')action=a.type==='PARENT'?`<button class="primary-btn" disabled>Parent — No Raffle</button>`:`<button class="primary-btn" data-action="raffle" data-id="${a.id}" ${a.raffleClaimedAt?'disabled':''}>${a.raffleClaimedAt?'Raffle Active':'Activate Raffle'}</button>`;return `<article class="result-card"><div><h3>${esc(a.fullName)} <span class="tag ${a.type==='PARENT'?'red':''}">${typeLabel(a.type)}</span></h3><p>${esc(a.code)} • Age ${a.age} • Family ${esc(a.familyId||'—')}</p><p>${esc(a.contact)} • ${esc(a.location)}</p>${statusTags(a)}</div><div class="result-actions">${action}<button class="ghost-btn" data-action="pass" data-id="${a.id}">Pass</button></div></article>`}
+function renderSearchResults(targetId,q,mode){const t=$(targetId),list=searchAttendees(q);t.classList.remove('empty-state');if(!list.length){t.classList.add('empty-state');t.textContent='No matching attendee found.';return}t.innerHTML=list.slice(0,20).map(a=>resultCard(a,mode)).join('')}
+function bindSearch(i,b,t,m){const run=()=>renderSearchResults(t,$(i).value,m);$(b).addEventListener('click',run);$(i).addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();run()}})}
+bindSearch('checkinSearch','checkinSearchBtn','checkinResults','checkin');bindSearch('releaseSearch','releaseSearchBtn','releaseResults','release');bindSearch('foodSearch','foodSearchBtn','foodResults','food');bindSearch('raffleSearch','raffleSearchBtn','raffleResults','raffle');
+function byId(id){return attendees.find(a=>a.id===id)}function byCode(code){const c=String(code||'').trim().replace(/^CHRISTMASHEARTS\|/i,'');return attendees.find(a=>norm(a.code)===norm(c))}
+function refresh(a){[['checkin','checkinResults'],['release','releaseResults'],['food','foodResults'],['raffle','raffleResults']].forEach(([m,t])=>{if($(`view-${m}`).classList.contains('active'))renderSearchResults(t,a.code,m)})}
+function checkin(id){const a=byId(id);if(!a)return;if(a.checkedInAt)return toast('Already checked in.');a.checkedInAt=nowIso();a.checkedInBy=currentStaff();logAction('CHECKED IN',a);save();refresh(a);toast(`${a.fullName} marked present.`)}
+function releaseStub(id){const a=byId(id);if(!a)return;if(!a.checkedInAt)return toast('Check in this attendee first.');if(a.stubReleasedAt)return toast('Digital stub already released.');a.stubReleasedAt=nowIso();a.stubReleasedBy=currentStaff();logAction('STUB RELEASED',a);save();refresh(a);openPass(id);toast('Digital stub released.')}
+function claimFood(id){const a=byId(id);if(!a)return;if(!a.stubReleasedAt)return toast('Digital stub must be released first.');if(a.foodClaimedAt)return toast(`Food already claimed ${humanTime(a.foodClaimedAt)}.`);if(settings.foodCapacity&&attendees.filter(x=>x.foodClaimedAt).length>=settings.foodCapacity)return toast('Meal inventory is already at zero.');a.foodClaimedAt=nowIso();a.foodClaimedBy=currentStaff();logAction('FOOD CLAIMED',a);save();refresh(a);toast(`Food claimed for ${a.fullName}.`)}
+function claimRaffle(id){const a=byId(id);if(!a)return;if(a.type==='PARENT')return toast('Parents / Guardians are not eligible for raffle.');if(!a.stubReleasedAt)return toast('Digital stub must be released first.');if(a.raffleClaimedAt)return toast('Raffle already activated.');a.raffleClaimedAt=nowIso();a.raffleClaimedBy=currentStaff();logAction('RAFFLE ACTIVATED',a);save();refresh(a);toast(`Raffle activated for ${a.fullName}.`)}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(!b)return;const {action,id}=b.dataset;if(action==='pass')openPass(id);if(action==='checkin')checkin(id);if(action==='release')releaseStub(id);if(action==='food')claimFood(id);if(action==='raffle')claimRaffle(id);if(action==='undo-food')undoField(id,'foodClaimedAt','foodClaimedBy','FOOD CLAIM UNDONE');if(action==='undo-raffle')undoField(id,'raffleClaimedAt','raffleClaimedBy','RAFFLE ACTIVATION UNDONE');if(action==='undo-release')undoField(id,'stubReleasedAt','stubReleasedBy','STUB RELEASE UNDONE');if(action==='delete')deleteAttendee(id);if(action==='delete-staff')deleteStaff(id)});
+function requireAdmin(){if(currentRole()!=='ADMIN'){toast('Administrator access required.');return false}return true}
+function undoField(id,field,byField,label){if(!requireAdmin())return;const a=byId(id),reason=prompt('Reason for correction / undo:');if(!a||!reason)return;a[field]=null;a[byField]=null;logAction(label,a,reason);save();toast('Correction saved.')}
+function deleteAttendee(id){if(!requireAdmin())return;const a=byId(id);if(!a||!confirm(`Delete ${a.fullName}?`))return;const reason=prompt('Reason for deleting this attendee:');if(!reason)return;logAction('ATTENDEE DELETED',a,reason);attendees=attendees.filter(x=>x.id!==id);winners=winners.filter(w=>w.id!==id);save()}
+function openPass(id){const a=byId(id);if(!a)return;$('passCode').textContent=a.code;$('passName').textContent=a.fullName;$('passDetails').textContent=`${typeLabel(a.type)} • Age ${a.age} • ${a.location}`;$('passFamily').textContent=`Family / Household ID: ${a.familyId||'—'}`;$('passCheckin').textContent=a.checkedInAt?'PRESENT':'NOT CHECKED IN';$('passReleased').textContent=a.stubReleasedAt?'RELEASED':'PENDING';$('passFood').textContent=a.foodClaimedAt?'CLAIMED':(a.stubReleasedAt?'ELIGIBLE':'LOCKED');$('passRaffle').textContent=a.type==='PARENT'?'NOT ELIGIBLE':(a.raffleClaimedAt?'ACTIVE':(a.stubReleasedAt?'ELIGIBLE':'LOCKED'));const q=$('qrCode');q.innerHTML='';const payload=`CHRISTMASHEARTS|${a.code}`;if(window.QRCode)new QRCode(q,{text:payload,width:190,height:190,colorDark:'#103b2d',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});else q.innerHTML=`<b>${esc(a.code)}</b>`;$('passDialog').showModal()}
+$('closePassBtn').addEventListener('click',()=>$('passDialog').close());$('printPassBtn').addEventListener('click',()=>window.print());
+function renderRecords(){if(!$('recordsBody'))return;const q=$('recordsSearch')?.value||'',f=$('recordsFilter')?.value||'ALL',list=searchAttendees(q,f),admin=currentRole()==='ADMIN';$('recordsBody').innerHTML=list.length?list.map(a=>`<tr><td><b>${esc(a.code)}</b></td><td>${esc(a.fullName)}<br><small>${esc(a.contact)}</small></td><td>${typeLabel(a.type)}</td><td>${esc(a.familyId||'—')}</td><td>${a.checkedInAt?'✅ '+humanTime(a.checkedInAt):'—'}</td><td>${a.stubReleasedAt?'✅ '+humanTime(a.stubReleasedAt):'—'}</td><td>${a.foodClaimedAt?'✅ '+humanTime(a.foodClaimedAt):'—'}</td><td>${a.type==='PARENT'?'🚫 No raffle':(a.raffleClaimedAt?'✅ Active':'—')}</td><td><button class="mini-btn" data-action="pass" data-id="${a.id}">Pass</button>${admin&&a.stubReleasedAt?`<button class="mini-btn" data-action="undo-release" data-id="${a.id}">Undo Stub</button>`:''}${admin&&a.foodClaimedAt?`<button class="mini-btn" data-action="undo-food" data-id="${a.id}">Undo Food</button>`:''}${admin&&a.raffleClaimedAt?`<button class="mini-btn" data-action="undo-raffle" data-id="${a.id}">Undo Raffle</button>`:''}${admin?`<button class="mini-btn danger-mini" data-action="delete" data-id="${a.id}">Delete</button>`:''}</td></tr>`).join(''):`<tr><td colspan="9" class="empty-cell">No records found.</td></tr>`}
+$('recordsSearch').addEventListener('input',renderRecords);$('recordsFilter').addEventListener('change',renderRecords);
+function csvEsc(v){const s=String(v??'');return /[",\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s}function downloadBlob(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
+$('exportCsvBtn').addEventListener('click',()=>{const h=['Code','Full Name','Type','Age','Family ID','Location','Contact','Registered At','Registered By','Checked In At','Checked In By','Stub Released At','Stub Released By','Food Claimed At','Food Claimed By','Raffle Claimed At','Raffle Claimed By'],r=attendees.map(a=>[a.code,a.fullName,typeLabel(a.type),a.age,a.familyId,a.location,a.contact,humanTime(a.registeredAt),a.registeredBy,humanTime(a.checkedInAt),a.checkedInBy,humanTime(a.stubReleasedAt),a.stubReleasedBy,humanTime(a.foodClaimedAt),a.foodClaimedBy,humanTime(a.raffleClaimedAt),a.raffleClaimedBy]);downloadBlob(new Blob([[h,...r].map(x=>x.map(csvEsc).join(',')).join('\n')],{type:'text/csv'}),'christmas-hearts-2026-attendees.csv')});
+$('backupBtn').addEventListener('click',()=>exportArchive(false));$('fullArchiveBtn').addEventListener('click',()=>exportArchive(true));function exportArchive(full){const data={event:'CHRISTmas in Our Hearts 2026',exportedAt:nowIso(),attendees,winners,settings,audit:full?audit:undefined};downloadBlob(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),full?'christmas-hearts-2026-full-archive.json':'christmas-hearts-2026-backup.json');logAction(full?'FULL ARCHIVE EXPORTED':'BACKUP EXPORTED')}
+$('restoreInput').addEventListener('change',async e=>{if(!requireAdmin())return;const file=e.target.files?.[0];if(!file)return;try{const d=JSON.parse(await file.text());if(!Array.isArray(d.attendees))throw 0;if(!confirm(`Restore ${d.attendees.length} attendee records and replace current event data on this device?`))return;attendees=d.attendees.map(normalizeAttendee);winners=Array.isArray(d.winners)?d.winners:[];if(d.settings)settings=d.settings;if(Array.isArray(d.audit))audit=d.audit;logAction('BACKUP RESTORED',null,`${attendees.length} attendees`);save()}catch{toast('Could not restore this file.')}e.target.value=''});
+$('drawBtn').addEventListener('click',()=>{const eligible=attendees.filter(a=>a.type==='KID'&&a.raffleClaimedAt&&!winners.some(w=>w.id===a.id));if(!eligible.length){$('drawName').textContent='No eligible entries';$('drawMeta').textContent='Activate a new kid raffle entry first.';return}let n=0;$('drawBtn').disabled=true;const spin=setInterval(()=>{const t=eligible[Math.floor(Math.random()*eligible.length)];$('drawName').textContent=t.fullName;if(++n>=18){clearInterval(spin);const w=eligible[Math.floor(Math.random()*eligible.length)],rec={id:w.id,code:w.code,name:w.fullName,drawnAt:nowIso(),drawnBy:currentStaff()};winners.push(rec);logAction('RAFFLE WINNER DRAWN',w);save();$('drawName').textContent=w.fullName;$('drawMeta').textContent=`${w.code} • ${w.location}`;$('drawBtn').disabled=false}},80)});
+function renderWinners(){const e=$('winnerHistory');if(!e)return;if(!winners.length){e.className='winner-history empty-state';e.textContent='No winners yet.';return}e.className='winner-history';e.innerHTML=[...winners].reverse().map((w,i)=>`<div class="winner-row"><b>#${winners.length-i} ${esc(w.name)}</b><span>${esc(w.code)} • ${humanTime(w.drawnAt)} • Drawn by ${esc(w.drawnBy||'—')}</span></div>`).join('')}
+$('saveFoodCapacityBtn').addEventListener('click',()=>{if(!requireAdmin())return;settings.foodCapacity=Math.max(0,Number($('foodCapacity').value)||0);logAction('FOOD INVENTORY UPDATED',null,`Capacity ${settings.foodCapacity}`);save();toast('Food inventory saved.')});
+$('staffForm').addEventListener('submit',async e=>{e.preventDefault();if(!requireAdmin())return;const name=$('newStaffName').value.trim(),role=$('newStaffRole').value,pin=$('newStaffPin').value;if(!/^\d{4}$/.test(pin))return toast('Use a 4-digit PIN.');staff.push({id:crypto.randomUUID?.()||String(Date.now()),name,role,pinHash:await hashPin(pin),createdAt:nowIso()});logAction('STAFF ACCOUNT ADDED',null,`${name} — ${roleLabel(role)}`);save();e.currentTarget.reset();toast('Staff account added.')});
+function renderStaff(){if(!$('staffList'))return;$('staffList').innerHTML=staff.map(s=>`<div class="staff-row"><div><b>${esc(s.name)}</b><small>${roleLabel(s.role)}</small></div><button class="mini-btn" data-action="delete-staff" data-id="${s.id}" ${s.id===session?.id?'disabled':''}>Remove</button></div>`).join('')}
+function deleteStaff(id){if(!requireAdmin())return;const s=staff.find(x=>x.id===id);if(!s||s.id===session?.id)return;if(!confirm(`Remove staff account ${s.name}?`))return;staff=staff.filter(x=>x.id!==id);logAction('STAFF ACCOUNT REMOVED',null,s.name);save()}
+function renderAudit(){if(!$('auditBody'))return;$('auditBody').innerHTML=audit.slice(0,500).map(x=>`<tr><td>${humanTime(x.at)}</td><td>${esc(x.staff)}</td><td>${esc(roleLabel(x.role))}</td><td>${esc(x.action)}</td><td>${esc(x.name||x.code||'—')}</td><td>${esc(x.details||'')}</td></tr>`).join('')||`<tr><td colspan="6" class="empty-cell">No audit entries yet.</td></tr>`}
+$('exportAuditBtn').addEventListener('click',()=>{const rows=[['Time','Staff','Role','Action','Code','Attendee','Details'],...audit.map(x=>[humanTime(x.at),x.staff,roleLabel(x.role),x.action,x.code,x.name,x.details])];downloadBlob(new Blob([rows.map(r=>r.map(csvEsc).join(',')).join('\n')],{type:'text/csv'}),'christmas-hearts-2026-audit.csv')});
+$('clearEventBtn').addEventListener('click',()=>{if(!requireAdmin())return;const t=prompt('Type CLEAR EVENT DATA to permanently clear attendee, raffle, and audit records on this device.');if(t!=='CLEAR EVENT DATA')return;attendees=[];winners=[];audit=[];save();toast('Event records cleared. Staff accounts and settings were kept.')});
+$('requestPersistBtn').addEventListener('click',async()=>{if(navigator.storage?.persist){const ok=await navigator.storage.persist();toast(ok?'Offline storage protection granted.':'Browser did not grant persistent storage.')}else toast('Persistent storage is not supported in this browser.')});
+$$('[data-scan-target]').forEach(b=>b.addEventListener('click',()=>openScanner(b.dataset.scanTarget)));
+async function openScanner(target){currentScanTarget=target;$('scannerTitle').textContent=`Scan for ${target==='checkin'?'Check-In':target==='release'?'Stub Release':target==='food'?'Food Claim':'Raffle Claim'}`;$('scannerStatus').textContent='Starting camera…';$('manualScanCode').value='';$('scannerDialog').showModal();if(!('BarcodeDetector' in window))return $('scannerStatus').textContent='Camera QR detection is unavailable here. Enter the attendee code below.';try{const formats=await BarcodeDetector.getSupportedFormats();if(!formats.includes('qr_code'))throw 0;const detector=new BarcodeDetector({formats:['qr_code']});scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});$('scannerVideo').srcObject=scanStream;await $('scannerVideo').play();$('scannerStatus').textContent='Point camera at the attendee QR code.';const detect=async()=>{if(!$('scannerDialog').open)return;try{const codes=await detector.detect($('scannerVideo'));if(codes[0]?.rawValue){handleScan(codes[0].rawValue);return}}catch{}scanFrame=requestAnimationFrame(detect)};detect()}catch{$('scannerStatus').textContent='Camera could not start. Enter the attendee code below.'}}
+function handleScan(code){const a=byCode(code);if(!a)return toast('Attendee code not found.');closeScanner();if(currentScanTarget==='checkin'){showView('checkin');renderSearchResults('checkinResults',a.code,'checkin')}if(currentScanTarget==='release'){showView('release');renderSearchResults('releaseResults',a.code,'release')}if(currentScanTarget==='food'){showView('food');renderSearchResults('foodResults',a.code,'food')}if(currentScanTarget==='raffle'){showView('raffle');renderSearchResults('raffleResults',a.code,'raffle')}}
+function closeScanner(){if(scanFrame)cancelAnimationFrame(scanFrame);scanFrame=null;if(scanStream)scanStream.getTracks().forEach(t=>t.stop());scanStream=null;if($('scannerDialog').open)$('scannerDialog').close()}
+$('closeScannerBtn').addEventListener('click',closeScanner);$('manualScanBtn').addEventListener('click',()=>handleScan($('manualScanCode').value));$('scannerDialog').addEventListener('close',closeScanner);
+let bc=null;try{bc=new BroadcastChannel('christmas-hearts-2026');bc.onmessage=()=>{attendees=loadJson(KEYS.attendees,[]).map(normalizeAttendee);winners=loadJson(KEYS.winners,[]);audit=loadJson(KEYS.audit,[]);settings=loadJson(KEYS.settings,{foodCapacity:0});updateStats();renderRecords();renderWinners();renderAudit()}}catch{}const nativeSave=save;save=function(){nativeSave();try{bc?.postMessage('updated')}catch{}};
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstallPrompt=e;$('installBtn').hidden=false});$('installBtn').addEventListener('click',async()=>{if(!deferredInstallPrompt)return;deferredInstallPrompt.prompt();await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;$('installBtn').hidden=true});if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js'));
+refreshLogin();enterApp();
