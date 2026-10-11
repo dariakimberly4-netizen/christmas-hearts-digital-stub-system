@@ -1,5 +1,5 @@
-const CACHE='christmas-hearts-2026-v18';
-const CORE=['./','./index.html','./styles.css','./app.js','./search-fix.js','./pass-actions.js','./family-stub.js','./admin-tools.js','./clear-all-test-data.html','./manifest.webmanifest','./icon.svg'];
+const CACHE='christmas-hearts-2026-v19';
+const CORE=['./','./index.html','./styles.css','./app.js','./search-fix.js','./pass-actions.js','./family-stub.js','./admin-tools.js','./reliability-tools.js','./sync-config.js','./sync-center.js','./clear-all-test-data.html','./manifest.webmanifest','./icon.svg'];
 const QR='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
 
 function cleanHeaders(response){
@@ -14,18 +14,13 @@ async function transformResponse(request,response){
   const type=response.headers.get('content-type')||'';
   if(type.includes('text/html')){
     let text=await response.text();
-    if(!text.includes('search-fix.js')){
-      text=text.replace('</body>','  <script src="search-fix.js" defer></script>\n</body>');
-    }
-    if(!text.includes('pass-actions.js')){
-      text=text.replace('</body>','  <script src="pass-actions.js" defer></script>\n</body>');
-    }
-    if(!text.includes('family-stub.js')){
-      text=text.replace('</body>','  <script src="family-stub.js" defer></script>\n</body>');
-    }
-    if(!text.includes('admin-tools.js')){
-      text=text.replace('</body>','  <script src="admin-tools.js" defer></script>\n</body>');
-    }
+    if(!text.includes('search-fix.js'))text=text.replace('</body>','  <script src="search-fix.js" defer></script>\n</body>');
+    if(!text.includes('pass-actions.js'))text=text.replace('</body>','  <script src="pass-actions.js" defer></script>\n</body>');
+    if(!text.includes('family-stub.js'))text=text.replace('</body>','  <script src="family-stub.js" defer></script>\n</body>');
+    if(!text.includes('admin-tools.js'))text=text.replace('</body>','  <script src="admin-tools.js" defer></script>\n</body>');
+    if(!text.includes('reliability-tools.js'))text=text.replace('</body>','  <script src="reliability-tools.js" defer></script>\n</body>');
+    if(!text.includes('sync-config.js'))text=text.replace('</body>','  <script src="sync-config.js" defer></script>\n</body>');
+    if(!text.includes('sync-center.js'))text=text.replace('</body>','  <script src="sync-center.js" defer></script>\n</body>');
     return new Response(text,{status:response.status,statusText:response.statusText,headers:cleanHeaders(response)});
   }
   return response;
