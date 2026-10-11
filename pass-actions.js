@@ -198,11 +198,11 @@
 })();
 
 // Load the Family QR Wallet directly from a script that is already part of index.html.
-// This makes the separate Digital Stub / Food QR view available on the first visit.
+// The Family QR opens separate Food and Raffle stubs on the first visit.
 (()=>{
   if([...document.scripts].some(s=>(s.getAttribute('src')||'').split('?')[0].endsWith('family-wallet.js')))return;
   const s=document.createElement('script');
-  s.src='family-wallet.js?v=23';
+  s.src='family-wallet.js?v=24';
   s.async=false;
   document.head.appendChild(s);
 })();
