@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#103b2d" />
-  <meta name="description" content="CHRISTmas in Our Hearts 2026 registration, check-in, digital stub, food, and raffle system." />
+  <meta name="description" content="CHRISTmas in Our Hearts 2026 registration, digital stub, food, and raffle system." />
   <title>CHRISTmas in Our Hearts 2026</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
@@ -18,7 +18,7 @@
       <div class="brand-mark large" aria-hidden="true">♥</div>
       <p class="eyebrow">Heart Warriors Philippines Inc.</p>
       <h1>CHRISTmas in Our Hearts 2026</h1>
-      <p class="login-sub">Digital Registration • Check-In • Food • Raffle</p>
+      <p class="login-sub">Digital Registration • Digital Stub • Food • Raffle</p>
 
       <div id="firstSetup" hidden>
         <div class="notice-box">
@@ -67,7 +67,7 @@
     <main>
       <section class="stats-grid" aria-label="Event counters">
         <article class="stat-card"><span>Registered</span><strong id="statRegistered">0</strong></article>
-        <article class="stat-card"><span>Present</span><strong id="statPresent">0</strong></article>
+        <article class="stat-card"><span>Kids</span><strong id="statKids">0</strong></article>
         <article class="stat-card"><span>Stub Released</span><strong id="statReleased">0</strong></article>
         <article class="stat-card"><span>Food Claimed</span><strong id="statFood">0</strong></article>
         <article class="stat-card"><span>Raffle Active</span><strong id="statRaffle">0</strong></article>
@@ -76,13 +76,12 @@
 
       <nav class="module-grid" aria-label="Main modules">
         <button class="module-btn" data-view="register" data-roles="ADMIN,REGISTRATION"><span>01</span><b>Registration</b><small>Add kids and parents</small></button>
-        <button class="module-btn" data-view="checkin" data-roles="ADMIN,REGISTRATION,STUB"><span>02</span><b>Check-In</b><small>Mark attendee present</small></button>
-        <button class="module-btn" data-view="release" data-roles="ADMIN,STUB"><span>03</span><b>Digital Stub Release</b><small>Release pass after check-in</small></button>
-        <button class="module-btn" data-view="food" data-roles="ADMIN,FOOD"><span>04</span><b>Food Claim</b><small>One meal per person</small></button>
-        <button class="module-btn" data-view="raffle" data-roles="ADMIN,RAFFLE"><span>05</span><b>Raffle Claim</b><small>Kids only</small></button>
-        <button class="module-btn" data-view="draw" data-roles="ADMIN,RAFFLE"><span>06</span><b>Raffle Draw</b><small>No duplicate winners</small></button>
-        <button class="module-btn" data-view="records" data-roles="ADMIN,REGISTRATION,STUB,FOOD,RAFFLE"><span>07</span><b>Records</b><small>Search masterlist</small></button>
-        <button class="module-btn" data-view="admin" data-roles="ADMIN"><span>08</span><b>Admin & Audit</b><small>Staff, inventory, archive</small></button>
+        <button class="module-btn" data-view="release" data-roles="ADMIN,STUB"><span>02</span><b>Digital Stub Release</b><small>Release pass after registration</small></button>
+        <button class="module-btn" data-view="food" data-roles="ADMIN,FOOD"><span>03</span><b>Food Claim</b><small>One meal per person</small></button>
+        <button class="module-btn" data-view="raffle" data-roles="ADMIN,RAFFLE"><span>04</span><b>Raffle Claim</b><small>Kids only</small></button>
+        <button class="module-btn" data-view="draw" data-roles="ADMIN,RAFFLE"><span>05</span><b>Raffle Draw</b><small>No duplicate winners</small></button>
+        <button class="module-btn" data-view="records" data-roles="ADMIN,REGISTRATION,STUB,FOOD,RAFFLE"><span>06</span><b>Records</b><small>Search masterlist</small></button>
+        <button class="module-btn" data-view="admin" data-roles="ADMIN"><span>07</span><b>Admin & Audit</b><small>Staff, inventory, archive</small></button>
       </nav>
 
       <section class="workspace">
@@ -112,18 +111,8 @@
           </form>
         </div>
 
-        <div class="view" id="view-checkin">
-          <div class="section-heading"><div><p class="eyebrow">Attendance</p><h2>Check-In Attendee</h2></div><p class="rule-note">Mark the attendee present before releasing a digital stub.</p></div>
-          <div class="scanner-actions">
-            <button class="primary-btn" data-scan-target="checkin">Use Camera Scanner</button><span>or</span>
-            <input id="checkinSearch" placeholder="Name, attendee code, contact, or family ID" />
-            <button class="ghost-btn" id="checkinSearchBtn">Find</button>
-          </div>
-          <div id="checkinResults" class="results-list empty-state">No attendee selected.</div>
-        </div>
-
         <div class="view" id="view-release">
-          <div class="section-heading"><div><p class="eyebrow">Digital Stub Release</p><h2>Release Digital Pass</h2></div><p class="rule-note">Only checked-in attendees can receive a digital stub.</p></div>
+          <div class="section-heading"><div><p class="eyebrow">Digital Stub Release</p><h2>Release Digital Pass</h2></div><p class="rule-note">Find a registered attendee and release their digital stub.</p></div>
           <div class="scanner-actions">
             <button class="primary-btn" data-scan-target="release">Use Camera Scanner</button><span>or</span>
             <input id="releaseSearch" placeholder="Name, attendee code, contact, or family ID" />
@@ -173,7 +162,7 @@
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Code</th><th>Name</th><th>Type</th><th>Family</th><th>Present</th><th>Stub</th><th>Food</th><th>Raffle</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Code</th><th>Name</th><th>Type</th><th>Family</th><th>Stub</th><th>Food</th><th>Raffle</th><th>Actions</th></tr></thead>
               <tbody id="recordsBody"></tbody>
             </table>
           </div>
@@ -191,7 +180,7 @@
               <h3>Add Staff Account</h3>
               <form id="staffForm" class="stack-form compact">
                 <input id="newStaffName" required placeholder="Staff name" />
-                <select id="newStaffRole"><option value="REGISTRATION">Registration + Check-In</option><option value="STUB">Digital Stub Release</option><option value="FOOD">Food Claiming</option><option value="RAFFLE">Raffle Claiming / Draw</option><option value="ADMIN">Administrator</option></select>
+                <select id="newStaffRole"><option value="REGISTRATION">Registration</option><option value="STUB">Digital Stub Release</option><option value="FOOD">Food Claiming</option><option value="RAFFLE">Raffle Claiming / Draw</option><option value="ADMIN">Administrator</option></select>
                 <input id="newStaffPin" required type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="4-digit PIN" />
                 <button class="primary-btn" type="submit">Add Staff</button>
               </form>
@@ -229,7 +218,6 @@
       <p id="passDetails"></p>
       <p class="family-line" id="passFamily"></p>
       <div class="eligibility-grid">
-        <div><span>CHECK-IN</span><b id="passCheckin">—</b></div>
         <div><span>DIGITAL STUB</span><b id="passReleased">—</b></div>
         <div><span>FOOD</span><b id="passFood">—</b></div>
         <div><span>RAFFLE</span><b id="passRaffle">—</b></div>
