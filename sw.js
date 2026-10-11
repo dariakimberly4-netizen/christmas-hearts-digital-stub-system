@@ -1,5 +1,5 @@
-const CACHE='christmas-hearts-2026-v13';
-const CORE=['./','./index.html','./styles.css','./app.js','./search-fix.js','./pass-actions.js','./manifest.webmanifest','./icon.svg'];
+const CACHE='christmas-hearts-2026-v14';
+const CORE=['./','./index.html','./styles.css','./app.js','./search-fix.js','./pass-actions.js','./family-stub.js','./manifest.webmanifest','./icon.svg'];
 const QR='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
 
 function cleanHeaders(response){
@@ -19,6 +19,9 @@ async function transformResponse(request,response){
     }
     if(!text.includes('pass-actions.js')){
       text=text.replace('</body>','  <script src="pass-actions.js" defer></script>\n</body>');
+    }
+    if(!text.includes('family-stub.js')){
+      text=text.replace('</body>','  <script src="family-stub.js" defer></script>\n</body>');
     }
     return new Response(text,{status:response.status,statusText:response.statusText,headers:cleanHeaders(response)});
   }
