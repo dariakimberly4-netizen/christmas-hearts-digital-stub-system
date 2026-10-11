@@ -1,4 +1,4 @@
-const CACHE='christmas-hearts-2026-v12';
+const CACHE='christmas-hearts-2026-v13';
 const CORE=['./','./index.html','./styles.css','./app.js','./search-fix.js','./pass-actions.js','./manifest.webmanifest','./icon.svg'];
 const QR='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
 
