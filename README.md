@@ -18,7 +18,9 @@ A mobile-friendly, offline-capable event operations system for **Heart Warriors 
 
 ## Final event flow
 
-**STAFF LOGIN → REGISTRATION → CHECK-IN → DIGITAL STUB RELEASE → FOOD / RAFFLE CLAIM → RAFFLE DRAW → REPORTS**
+**STAFF LOGIN → REGISTRATION → DIGITAL STUB RELEASE → FOOD / RAFFLE CLAIM → RAFFLE DRAW → REPORTS**
+
+There is **no separate check-in step**. Once a person is registered, authorized Stub Release staff can find the attendee and release the digital pass.
 
 ## Registration fields
 
@@ -34,7 +36,7 @@ A mobile-friendly, offline-capable event operations system for **Heart Warriors 
 ## Staff roles
 
 - Administrator
-- Registration + Check-In
+- Registration
 - Digital Stub Release
 - Food Claiming
 - Raffle Claiming / Draw
@@ -46,7 +48,6 @@ The first launch creates a local Administrator account. The Administrator can ad
 - Role-based staff login
 - Registration and duplicate warnings
 - Family / household linking
-- Attendance check-in
 - Separate digital stub release
 - Unique attendee code and QR pass
 - Food claim with one-claim-only protection
