@@ -1,5 +1,5 @@
-const CACHE='christmas-hearts-2026-v19';
-const CORE=['./','./index.html','./styles.css','./app.js','./search-fix.js','./pass-actions.js','./family-stub.js','./admin-tools.js','./reliability-tools.js','./sync-config.js','./sync-center.js','./clear-all-test-data.html','./manifest.webmanifest','./icon.svg'];
+const CACHE='christmas-hearts-2026-v20';
+const CORE=['./','./index.html','./styles.css','./app.js','./search-fix.js','./pass-actions.js','./family-stub.js','./admin-tools.js','./reliability-tools.js','./sync-config.js','./sync-center.js','./demo-enhancements.js','./clear-all-test-data.html','./manifest.webmanifest','./icon.svg'];
 const QR='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
 
 function cleanHeaders(response){
@@ -21,6 +21,7 @@ async function transformResponse(request,response){
     if(!text.includes('reliability-tools.js'))text=text.replace('</body>','  <script src="reliability-tools.js" defer></script>\n</body>');
     if(!text.includes('sync-config.js'))text=text.replace('</body>','  <script src="sync-config.js" defer></script>\n</body>');
     if(!text.includes('sync-center.js'))text=text.replace('</body>','  <script src="sync-center.js" defer></script>\n</body>');
+    if(!text.includes('demo-enhancements.js'))text=text.replace('</body>','  <script src="demo-enhancements.js" defer></script>\n</body>');
     return new Response(text,{status:response.status,statusText:response.statusText,headers:cleanHeaders(response)});
   }
   return response;
