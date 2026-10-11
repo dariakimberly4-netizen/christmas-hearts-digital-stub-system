@@ -34,26 +34,74 @@
     say(`${released.length} released digital stub(s) cleared.`);
   }
 
+  function clearAllTestData(){
+    if(!isAdmin())return say('Administrator access required.');
+
+    const attendeeCount=Array.isArray(attendees)?attendees.length:0;
+    const winnerCount=Array.isArray(winners)?winners.length:0;
+    const ok=confirm(`CLEAR ALL TEST DATA?\n\nThis will permanently remove:\n• ${attendeeCount} attendee registration(s)\n• all Family IDs and QR records\n• all released-stub statuses\n• all food claims\n• all raffle activations and ${winnerCount} winner record(s)\n• the event audit trail\n\nStaff accounts, PINs, and event settings will be kept.`);
+    if(!ok)return;
+
+    try{attendees=[]}catch{}
+    try{winners=[]}catch{}
+    try{audit=[]}catch{}
+
+    try{
+      localStorage.setItem('christmasHearts2026.attendees.v1','[]');
+      localStorage.setItem('christmasHearts2026.winners.v1','[]');
+      localStorage.setItem('christmasHearts2026.audit.v1','[]');
+    }catch{}
+
+    try{if(typeof save==='function')save()}catch{}
+
+    ['releaseResults','foodResults','raffleResults'].forEach(id=>{
+      const e=document.getElementById(id);
+      if(e){e.className='results-list empty-state';e.textContent='No attendee selected.'}
+    });
+    const success=document.getElementById('registrationSuccess');
+    if(success)success.hidden=true;
+
+    say('All test data cleared. Staff accounts and PINs were kept.');
+  }
+
   function installButton(){
     const adminView=document.getElementById('view-admin');
-    if(!adminView||document.getElementById('clearReleasedStubsBtn'))return;
+    if(!adminView)return;
 
     const closeout=[...adminView.querySelectorAll('.admin-card')].find(card=>/Event Closeout/i.test(card.textContent||''));
     if(!closeout)return;
 
-    const note=document.createElement('p');
-    note.textContent='Reset digital-stub release status without deleting registrations.';
+    if(!document.getElementById('clearReleasedStubsBtn')){
+      const note=document.createElement('p');
+      note.textContent='Reset digital-stub release status without deleting registrations.';
 
-    const button=document.createElement('button');
-    button.type='button';
-    button.id='clearReleasedStubsBtn';
-    button.className='ghost-btn';
-    button.textContent='Clear Released Stubs';
-    button.style.marginTop='8px';
-    button.addEventListener('click',clearReleasedStubs);
+      const button=document.createElement('button');
+      button.type='button';
+      button.id='clearReleasedStubsBtn';
+      button.className='ghost-btn';
+      button.textContent='Clear Released Stubs';
+      button.style.marginTop='8px';
+      button.addEventListener('click',clearReleasedStubs);
 
-    closeout.insertBefore(note,closeout.querySelector('.form-actions'));
-    closeout.insertBefore(button,closeout.querySelector('.form-actions'));
+      closeout.insertBefore(note,closeout.querySelector('.form-actions'));
+      closeout.insertBefore(button,closeout.querySelector('.form-actions'));
+    }
+
+    if(!document.getElementById('clearAllTestDataBtn')){
+      const warning=document.createElement('p');
+      warning.innerHTML='<b>Test reset:</b> removes every attendee, family, food, raffle, winner, and audit record while keeping staff accounts and PINs.';
+
+      const clearAll=document.createElement('button');
+      clearAll.type='button';
+      clearAll.id='clearAllTestDataBtn';
+      clearAll.className='danger-btn';
+      clearAll.textContent='Clear All Test Data';
+      clearAll.style.marginTop='8px';
+      clearAll.addEventListener('click',clearAllTestData);
+
+      closeout.insertBefore(warning,closeout.querySelector('.form-actions'));
+      closeout.insertBefore(clearAll,closeout.querySelector('.form-actions'));
+    }
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installButton,{once:true});
