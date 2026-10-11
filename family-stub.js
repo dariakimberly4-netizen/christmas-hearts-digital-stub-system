@@ -4,29 +4,33 @@
 
   const style=document.createElement('style');
   style.textContent=`
-    #familyStubDialog{max-width:680px;width:calc(100% - 20px);max-height:calc(100dvh - 20px);overflow:auto}
+    #familyStubDialog{max-width:720px;width:calc(100% - 20px);max-height:calc(100dvh - 20px);overflow:auto}
     #familyStubDialog .dialog-close{z-index:100;width:54px;height:54px;display:grid;place-items:center;pointer-events:auto!important;touch-action:manipulation}
     .family-stub-card{padding:28px 22px 20px;background:linear-gradient(180deg,#fffaf0,#fff)}
     .family-stub-card h2{margin:0;color:#103b2d;font-family:Georgia,serif;text-align:center}
     .family-stub-code{text-align:center;font-weight:900;letter-spacing:.12em;color:#9f2430;margin:8px 0}
-    .family-qr{width:220px;height:220px;margin:14px auto;display:grid;place-items:center;background:#fff;border:10px solid #fff;border-radius:16px;box-shadow:0 4px 16px rgba(0,0,0,.10)}
+    .family-qr{width:210px;height:210px;margin:14px auto;display:grid;place-items:center;background:#fff;border:10px solid #fff;border-radius:16px;box-shadow:0 4px 16px rgba(0,0,0,.10)}
     .family-qr img,.family-qr canvas{max-width:100%;height:auto}
     .family-summary{text-align:center;color:#6f756d;margin:6px 0 16px}
     .family-instruction{background:#f5efe2;border:1px solid #e3d5b8;border-radius:14px;padding:12px;margin:12px 0;color:#4b504a;font-size:.88rem;text-align:center}
-    .family-member-list{display:grid;gap:10px;margin-top:14px}
-    .family-member{border:1px solid #e3dccf;border-radius:16px;padding:13px;background:#fff}
-    .family-member-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
-    .family-member h3{margin:0;color:#22251f;font-size:1rem}
-    .family-member small{color:#6f756d}
-    .family-member-status{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px}
-    .family-status{border:1px solid #e3dccf;border-radius:11px;padding:8px;text-align:center;font-size:.72rem}
-    .family-status span{display:block;color:#6f756d;font-size:.65rem;letter-spacing:.08em}
-    .family-status b{display:block;margin-top:3px;color:#103b2d}
-    .family-status.no b{color:#9f2430}
-    .family-member-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .family-member-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:16px}
+    .family-member{border:1px solid #e3dccf;border-radius:18px;padding:15px;background:#fff;text-align:center}
+    .family-member h3{margin:10px 0 3px;color:#22251f;font-size:1rem}
+    .family-member small{display:block;color:#6f756d;line-height:1.4}
+    .member-qr{width:170px;height:170px;margin:4px auto 8px;display:grid;place-items:center;background:#fff;border:8px solid #fff;border-radius:14px;box-shadow:0 3px 12px rgba(0,0,0,.08)}
+    .member-qr img,.member-qr canvas{max-width:100%;height:auto}
+    .member-type{display:inline-block;margin-top:8px;padding:4px 9px;border-radius:999px;background:#edf4ef;color:#103b2d;font-size:.7rem;font-weight:800}
+    .member-type.parent{background:#f9e7e9;color:#9f2430}
+    .family-member-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:11px}
     .family-member-actions button,.family-release-btn{min-height:46px;touch-action:manipulation}
     .family-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;padding:14px 18px 20px;background:#fff}
-    @media(max-width:560px){.family-stub-card{padding:24px 14px 18px}.family-member-status{grid-template-columns:1fr 1fr 1fr}.family-actions>*{width:100%}.family-qr{width:200px;height:200px}}
+    @media(max-width:560px){
+      .family-stub-card{padding:24px 14px 18px}
+      .family-member-list{grid-template-columns:1fr}
+      .family-actions>*{width:100%}
+      .family-qr{width:190px;height:190px}
+      .member-qr{width:190px;height:190px}
+    }
   `;
   document.head.appendChild(style);
 
@@ -57,7 +61,7 @@
         <p class="family-stub-code" id="familyStubCode">—</p>
         <div class="family-qr" id="familyQr" aria-label="Family QR code"></div>
         <p class="family-summary" id="familySummary">—</p>
-        <div class="family-instruction">Save or screenshot this FAMILY QR. One scan opens the whole household. Food and raffle are still claimed individually to prevent duplicates.</div>
+        <div class="family-instruction">Save or screenshot this stub. The Parent/Guardian and every child have their own QR code. Present the correct person’s QR when claiming.</div>
         <div id="familyReleaseArea"></div>
         <div class="family-member-list" id="familyMemberList"></div>
       </div>
@@ -116,22 +120,33 @@
   }
 
   function memberHtml(a){
-    const stub=a.stubReleasedAt?'RELEASED':'PENDING';
-    const food=a.foodClaimedAt?'CLAIMED':(a.stubReleasedAt?'ELIGIBLE':'LOCKED');
-    const raffle=a.type==='PARENT'?'NO RAFFLE':(a.raffleClaimedAt?'ACTIVE':(a.stubReleasedAt?'ELIGIBLE':'LOCKED'));
-    let action='';
     const mode=currentMode==='general'?(role()==='FOOD'?'food':role()==='RAFFLE'?'raffle':'general'):currentMode;
-    if(mode==='food')action=`<button class="primary-btn" type="button" data-family-action="food" data-id="${a.id}" ${a.foodClaimedAt||!a.stubReleasedAt?'disabled':''}>${a.foodClaimedAt?'Food Claimed':(!a.stubReleasedAt?'Food Locked':'Claim Food')}</button>`;
-    if(mode==='raffle')action=a.type==='PARENT'?`<button class="ghost-btn" type="button" disabled>No Raffle — Parent</button>`:`<button class="primary-btn" type="button" data-family-action="raffle" data-id="${a.id}" ${a.raffleClaimedAt||!a.stubReleasedAt?'disabled':''}>${a.raffleClaimedAt?'Raffle Active':(!a.stubReleasedAt?'Raffle Locked':'Activate Raffle')}</button>`;
+    let action='';
+    if(mode==='food'){
+      action=`<button class="primary-btn" type="button" data-family-action="food" data-id="${a.id}" ${a.foodClaimedAt||!a.stubReleasedAt?'disabled':''}>${a.foodClaimedAt?'Food Claimed':(!a.stubReleasedAt?'Food Locked':'Claim Food')}</button>`;
+    }
+    if(mode==='raffle'){
+      action=a.type==='PARENT'
+        ?`<button class="ghost-btn" type="button" disabled>Parent — No Raffle</button>`
+        :`<button class="primary-btn" type="button" data-family-action="raffle" data-id="${a.id}" ${a.raffleClaimedAt||!a.stubReleasedAt?'disabled':''}>${a.raffleClaimedAt?'Raffle Active':(!a.stubReleasedAt?'Raffle Locked':'Activate Raffle')}</button>`;
+    }
     return `<article class="family-member">
-      <div class="family-member-head"><div><h3>${esc(a.fullName)}</h3><small>${a.type==='KID'?'Child':'Parent / Guardian'} • Age ${a.age} • ${esc(a.code)}</small></div><span class="tag ${a.type==='PARENT'?'red':''}">${a.type==='KID'?'KID':'PARENT'}</span></div>
-      <div class="family-member-status">
-        <div class="family-status"><span>STUB</span><b>${stub}</b></div>
-        <div class="family-status"><span>FOOD</span><b>${food}</b></div>
-        <div class="family-status ${a.type==='PARENT'?'no':''}"><span>RAFFLE</span><b>${raffle}</b></div>
-      </div>
+      <div class="member-qr" id="memberQr-${a.id}" aria-label="QR code for ${esc(a.fullName)}"></div>
+      <h3>${esc(a.fullName)}</h3>
+      <small>${esc(a.code)}</small>
+      <span class="member-type ${a.type==='PARENT'?'parent':''}">${a.type==='KID'?'CHILD':'PARENT / GUARDIAN'}</span>
       ${action?`<div class="family-member-actions">${action}</div>`:''}
     </article>`;
+  }
+
+  function renderMemberQrs(list){
+    list.forEach(a=>{
+      const q=document.getElementById(`memberQr-${a.id}`);if(!q)return;
+      q.innerHTML='';
+      const payload=`CHRISTMASHEARTS|${a.code}`;
+      if(window.QRCode)new QRCode(q,{text:payload,width:150,height:150,colorDark:'#103b2d',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});
+      else q.innerHTML=`<b>${esc(a.code)}</b>`;
+    });
   }
 
   function renderFamilyStub(){
@@ -141,18 +156,23 @@
     const p=parentOf(list);
     const kids=list.filter(a=>a.type==='KID');
     document.getElementById('familyStubCode').textContent=currentFamilyId;
-    document.getElementById('familySummary').textContent=`Parent/Guardian: ${p?.fullName||'—'} • ${list.length} attendee${list.length===1?'':'s'} • ${kids.length} child${kids.length===1?'':'ren'}`;
+    document.getElementById('familySummary').textContent=`${p?.fullName||'Family'} • ${list.length} attendee${list.length===1?'':'s'} • ${kids.length} child${kids.length===1?'':'ren'}`;
+
     const q=document.getElementById('familyQr');q.innerHTML='';
     const payload=`CHRISTMASHEARTS-FAMILY|${currentFamilyId}`;
-    if(window.QRCode)new QRCode(q,{text:payload,width:190,height:190,colorDark:'#103b2d',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});
+    if(window.QRCode)new QRCode(q,{text:payload,width:180,height:180,colorDark:'#103b2d',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});
     else q.innerHTML=`<b>${esc(currentFamilyId)}</b>`;
 
     const releaseArea=document.getElementById('familyReleaseArea');
-    if(allReleased(list))releaseArea.innerHTML='<div class="family-instruction"><b>FAMILY STUB RELEASED</b><br>All family members are ready for individual food/raffle processing.</div>';
-    else if(currentMode==='release'||['ADMIN','STUB'].includes(role()))releaseArea.innerHTML=`<button class="primary-btn family-release-btn" style="width:100%" type="button" data-family-action="release-all">Release Family Stub for All ${list.length} Members</button>`;
-    else releaseArea.innerHTML='<div class="family-instruction">Family stub is not fully released yet.</div>';
+    const staffReleaseMode=currentMode==='release'||['ADMIN','STUB'].includes(role());
+    if(staffReleaseMode&&!allReleased(list)){
+      releaseArea.innerHTML=`<button class="primary-btn family-release-btn" style="width:100%" type="button" data-family-action="release-all">Release Family Stub for All ${list.length} Members</button>`;
+    }else{
+      releaseArea.innerHTML='';
+    }
 
     document.getElementById('familyMemberList').innerHTML=list.map(memberHtml).join('');
+    renderMemberQrs(list);
   }
 
   function openFamilyStub(familyId,mode='general'){
@@ -226,18 +246,40 @@
     registerAnother?.parentElement?.insertBefore(b,registerAnother);
   }
 
-  function roundRect(ctx,x,y,w,h,r,fill,stroke){const rr=Math.min(r,w/2,h/2);ctx.beginPath();ctx.moveTo(x+rr,y);ctx.arcTo(x+w,y,x+w,y+h,rr);ctx.arcTo(x+w,y+h,x,y+h,rr);ctx.arcTo(x,y+h,x,y,rr);ctx.arcTo(x,y,x+w,y,rr);ctx.closePath();if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.stroke()}}
+  function roundRect(ctx,x,y,w,h,r,fill,stroke){
+    const rr=Math.min(r,w/2,h/2);ctx.beginPath();ctx.moveTo(x+rr,y);ctx.arcTo(x+w,y,x+w,y+h,rr);ctx.arcTo(x+w,y+h,x,y+h,rr);ctx.arcTo(x,y+h,x,y,rr);ctx.arcTo(x,y,x+w,y,rr);ctx.closePath();
+    if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.stroke()}
+  }
+
+  function drawDomQr(ctx,containerId,x,y,size){
+    const qr=document.getElementById(containerId)?.querySelector('canvas,img');
+    if(!qr)return false;
+    ctx.fillStyle='#fff';ctx.fillRect(x,y,size,size);
+    try{ctx.drawImage(qr,x+10,y+10,size-20,size-20);return true}catch{return false}
+  }
+
   async function buildFamilyPng(){
     const list=members(currentFamilyId);if(!list.length)return null;
     const p=parentOf(list),kids=list.filter(a=>a.type==='KID');
-    const height=Math.max(1250,850+list.length*92);
+    const height=Math.max(1250,720+list.length*210);
     const canvas=document.createElement('canvas');canvas.width=900;canvas.height=height;const ctx=canvas.getContext('2d');
     ctx.fillStyle='#fffaf0';ctx.fillRect(0,0,900,height);roundRect(ctx,35,35,830,height-70,38,'#fffdf8','#e3dccf');
-    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#103b2d';ctx.font='700 28px Arial';ctx.fillText('OFFICIAL FAMILY DIGITAL STUB',450,100);ctx.font='700 44px Georgia';ctx.fillText('CHRISTmas in Our Hearts',450,160);ctx.fillStyle='#9f2430';ctx.font='800 34px Arial';ctx.fillText(currentFamilyId,450,220);
-    const qr=document.querySelector('#familyQr canvas, #familyQr img');if(qr){ctx.fillStyle='#fff';ctx.fillRect(245,270,410,410);try{ctx.drawImage(qr,270,295,360,360)}catch{}}
-    ctx.fillStyle='#22251f';ctx.font='700 30px Arial';ctx.fillText(`Parent/Guardian: ${p?.fullName||'—'}`,450,735);ctx.fillStyle='#6f756d';ctx.font='400 22px Arial';ctx.fillText(`${list.length} attendees • ${kids.length} children`,450,775);
-    let y=840;ctx.textAlign='left';list.forEach(a=>{roundRect(ctx,90,y-32,720,70,14,'#ffffff','#e3dccf');ctx.fillStyle='#22251f';ctx.font='700 22px Arial';ctx.fillText(a.fullName,115,y);ctx.textAlign='right';ctx.fillStyle='#103b2d';ctx.font='600 18px Arial';ctx.fillText(`${a.type==='KID'?'CHILD':'PARENT'} • Food ${a.foodClaimedAt?'CLAIMED':'ELIGIBLE'} • Raffle ${a.type==='PARENT'?'NO':a.raffleClaimedAt?'ACTIVE':'ELIGIBLE'}`,785,y);ctx.textAlign='left';y+=88});
-    ctx.textAlign='center';ctx.fillStyle='#103b2d';ctx.font='600 22px Arial';ctx.fillText('December 3, 2026 • 1:00 PM • Philippine Heart Center',450,height-125);ctx.fillStyle='#6f756d';ctx.font='400 20px Arial';ctx.fillText('Save this Family QR. Claims are recorded individually.',450,height-80);
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#103b2d';ctx.font='700 28px Arial';ctx.fillText('OFFICIAL FAMILY DIGITAL STUB',450,95);ctx.font='700 44px Georgia';ctx.fillText('CHRISTmas in Our Hearts',450,150);ctx.fillStyle='#9f2430';ctx.font='800 32px Arial';ctx.fillText(currentFamilyId,450,205);
+    drawDomQr(ctx,'familyQr',325,245,250);
+    ctx.fillStyle='#22251f';ctx.font='700 27px Arial';ctx.fillText(p?.fullName||'Family',450,535);ctx.fillStyle='#6f756d';ctx.font='400 20px Arial';ctx.fillText(`${list.length} attendees • ${kids.length} children`,450,570);
+    ctx.fillStyle='#103b2d';ctx.font='700 22px Arial';ctx.fillText('PARENT / GUARDIAN + CHILD QR CODES',450,620);
+
+    let y=660;
+    list.forEach(a=>{
+      roundRect(ctx,85,y,730,180,20,'#ffffff','#e3dccf');
+      drawDomQr(ctx,`memberQr-${a.id}`,105,y+20,140);
+      ctx.textAlign='left';ctx.fillStyle='#22251f';ctx.font='700 26px Arial';ctx.fillText(a.fullName,285,y+58);
+      ctx.fillStyle='#6f756d';ctx.font='400 20px Arial';ctx.fillText(a.type==='KID'?'CHILD':'PARENT / GUARDIAN',285,y+98);
+      ctx.fillStyle='#103b2d';ctx.font='700 20px Arial';ctx.fillText(a.code,285,y+135);
+      y+=195;
+    });
+
+    ctx.textAlign='center';ctx.fillStyle='#103b2d';ctx.font='600 21px Arial';ctx.fillText('December 3, 2026 • 1:00 PM • Philippine Heart Center',450,height-110);ctx.fillStyle='#6f756d';ctx.font='400 19px Arial';ctx.fillText('Present the correct QR code for each person.',450,height-72);
     return await new Promise(resolve=>canvas.toBlob(resolve,'image/png',1));
   }
 
@@ -248,8 +290,11 @@
     try{
       const blob=await buildFamilyPng();if(!blob)throw 0;
       const file=new File([blob],`christmas-hearts-family-${currentFamilyId.toLowerCase()}.png`,{type:'image/png'});
-      if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){await navigator.share({title:'CHRISTmas in Our Hearts Family Stub',text:`Family Stub ${currentFamilyId}`,files:[file]})}
-      else{const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=file.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500);say('Family Stub image saved.')}
+      if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){
+        await navigator.share({title:'CHRISTmas in Our Hearts Family Stub',text:`Family Stub ${currentFamilyId}`,files:[file]});
+      }else{
+        const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=file.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500);say('Family Stub image saved.');
+      }
     }catch(err){if(err?.name!=='AbortError')say('Could not share the Family Stub. Please try again.')}
     finally{if(button){button.disabled=false;button.textContent=old||'Share / Save Family Stub'}}
   }
