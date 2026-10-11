@@ -22,20 +22,28 @@
 
       <div id="firstSetup" hidden>
         <div class="notice-box">
-          <b>First-time setup</b>
-          <p>Create the first local Administrator account for this device.</p>
+          <b>Step 1 — Create Administrator</b>
+          <p>Tap the fields below, enter your name and a 4-digit PIN, then tap Create Administrator. Staff Login will appear after setup.</p>
         </div>
-        <form id="setupForm" class="stack-form">
-          <label>Administrator Name<input id="setupName" required placeholder="Staff name" /></label>
-          <label>4-digit Admin PIN<input id="setupPin" required type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="••••" /></label>
-          <button class="primary-btn" type="submit">Create Administrator</button>
+        <form id="setupForm" class="stack-form" autocomplete="off">
+          <label for="setupName">Administrator Name</label>
+          <input id="setupName" name="setupName" type="text" required autocomplete="off" autocapitalize="words" enterkeyhint="next" placeholder="Tap here and type staff name" />
+          <label for="setupPin">4-digit Admin PIN</label>
+          <input id="setupPin" name="setupPin" required type="tel" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="off" enterkeyhint="done" placeholder="Tap here and enter 4 digits" />
+          <button class="primary-btn login-action" type="submit">Create Administrator</button>
         </form>
       </div>
 
-      <form id="loginForm" class="stack-form">
-        <label>Staff Account<select id="loginStaff" required></select></label>
-        <label>Access PIN<input id="loginPin" required type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="••••" /></label>
-        <button class="primary-btn" type="submit">Staff Login</button>
+      <form id="loginForm" class="stack-form" autocomplete="off" hidden>
+        <div class="notice-box">
+          <b>Staff Login</b>
+          <p>Select your staff account, enter your 4-digit PIN, then tap Staff Login.</p>
+        </div>
+        <label for="loginStaff">Staff Account</label>
+        <select id="loginStaff" required aria-label="Staff Account"></select>
+        <label for="loginPin">Access PIN</label>
+        <input id="loginPin" name="loginPin" required type="tel" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="off" enterkeyhint="done" placeholder="Tap here and enter PIN" />
+        <button class="primary-btn login-action" type="submit">Staff Login</button>
       </form>
       <p class="tiny-note">Staff accounts are stored locally on this device. Do not share PINs.</p>
     </div>
