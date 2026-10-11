@@ -1,4 +1,4 @@
-const CACHE='christmas-hearts-2026-v5';
+const CACHE='christmas-hearts-2026-v6';
 const CORE=['./','./index.html','./styles.css','./app.js','./manifest.webmanifest','./icon.svg'];
 const QR='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
 self.addEventListener('install',event=>{event.waitUntil((async()=>{const cache=await caches.open(CACHE);await cache.addAll(CORE);try{await cache.add(QR)}catch{}self.skipWaiting()})())});
