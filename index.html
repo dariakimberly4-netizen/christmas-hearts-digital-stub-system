@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#103b2d" />
-  <meta name="description" content="CHRISTmas in Our Hearts 2026 staff-operated registration, digital stub, food, and raffle system." />
+  <meta name="description" content="CHRISTmas in Our Hearts 2026 parent registration, digital stub, food, and raffle system." />
   <title>CHRISTmas in Our Hearts 2026</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
@@ -14,38 +14,94 @@
 </head>
 <body>
   <section class="login-screen" id="loginScreen">
-    <div class="login-card">
+    <div class="login-card portal-card">
       <div class="brand-mark large" aria-hidden="true">♥</div>
       <p class="eyebrow">Heart Warriors Philippines Inc.</p>
       <h1>CHRISTmas in Our Hearts 2026</h1>
-      <p class="login-sub">Staff Registration • Digital Stub • Food • Raffle</p>
+      <p class="login-sub">Parent Registration • Digital Stub • Food • Raffle</p>
 
-      <div id="firstSetup" hidden>
+      <div id="portalHome">
         <div class="notice-box">
-          <b>Step 1 — Create Administrator</b>
-          <p>Enter the administrator name and a 4-digit PIN. The Administrator can then create staff accounts.</p>
+          <b>Choose how you will enter</b>
+          <p>Parents/Guardians register themselves and their child. Authorized event staff use Staff Login for stub release, food, raffle, and records.</p>
         </div>
-        <form id="setupForm" class="stack-form" autocomplete="off">
-          <label for="setupName">Administrator Name</label>
-          <input id="setupName" name="setupName" type="text" required autocomplete="off" autocapitalize="words" enterkeyhint="next" placeholder="Staff name" />
-          <label for="setupPin">4-digit Admin PIN</label>
-          <input id="setupPin" name="setupPin" required type="tel" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="off" enterkeyhint="done" placeholder="4 digits" />
-          <button class="primary-btn login-action" type="submit">Create Administrator</button>
-        </form>
+        <div class="portal-actions">
+          <button class="primary-btn portal-btn" id="openParentRegistrationBtn">Parent / Guardian Registration</button>
+          <button class="ghost-btn portal-btn" id="openStaffLoginBtn">Staff Login</button>
+        </div>
+        <p class="tiny-note">For this offline version, parent registration must be done on the designated event registration device so staff can see the record.</p>
       </div>
 
-      <form id="loginForm" class="stack-form" autocomplete="off" hidden>
-        <div class="notice-box">
-          <b>Staff Login</b>
-          <p>Only authorized event staff can encode registrations and process claims.</p>
+      <div id="parentRegistrationPanel" hidden>
+        <div class="section-heading parent-heading">
+          <div><p class="eyebrow">Parent / Guardian Registration</p><h2>Register Your Family</h2></div>
         </div>
-        <label for="loginStaff">Staff Account</label>
-        <select id="loginStaff" required aria-label="Staff Account"></select>
-        <label for="loginPin">Access PIN</label>
-        <input id="loginPin" name="loginPin" required type="tel" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="off" enterkeyhint="done" placeholder="Enter PIN" />
-        <button class="primary-btn login-action" type="submit">Staff Login</button>
-      </form>
-      <p class="tiny-note">Staff accounts are stored locally on this device. Do not share PINs.</p>
+        <div class="notice-box">
+          <b>Parent completes this form</b>
+          <p>One submission registers one Parent/Guardian and one Kid under the same Family ID. The kid is eligible for Food + Raffle. The parent is eligible for Food only.</p>
+        </div>
+        <form id="parentRegistrationForm" class="form-grid parent-form" autocomplete="off">
+          <div class="full-span form-section-title">Parent / Guardian Details</div>
+          <label>Parent / Guardian Full Name<input id="parentFullName" name="parentFullName" required placeholder="First name Last name" /></label>
+          <label>Parent / Guardian Age<input id="parentAge" name="parentAge" required min="18" max="120" type="number" inputmode="numeric" placeholder="Age" /></label>
+          <label>Parent Location / Address<input id="parentLocation" name="parentLocation" required placeholder="City / Barangay / Address" /></label>
+          <label>Parent Contact Number<input id="parentContact" name="parentContact" required inputmode="tel" placeholder="09XXXXXXXXX" /></label>
+
+          <div class="full-span form-section-title">Child Details</div>
+          <label>Child Full Name<input id="childFullName" name="childFullName" required placeholder="First name Last name" /></label>
+          <label>Child Age<input id="childAge" name="childAge" required min="0" max="17" type="number" inputmode="numeric" placeholder="Age" /></label>
+          <label>Child Location / Address<input id="childLocation" name="childLocation" required placeholder="City / Barangay / Address" /></label>
+          <label>Child Contact Number<input id="childContact" name="childContact" required inputmode="tel" placeholder="Use parent number if same" /></label>
+
+          <label class="privacy-check full-span"><input type="checkbox" id="parentPrivacyConsent" required /><span>I confirm that I am the parent/guardian and I authorize these details to be used for this event's registration, food distribution, raffle administration, reporting, and authorized records.</span></label>
+          <div class="full-span form-actions parent-actions">
+            <button class="primary-btn" type="submit">Submit Registration</button>
+            <button class="ghost-btn" type="button" id="parentBackBtn">Back</button>
+          </div>
+        </form>
+        <div id="parentRegistrationSuccess" class="success-box" hidden>
+          <h3>Registration Submitted</h3>
+          <p>Your family registration has been saved on this event device.</p>
+          <p><b>Family ID:</b> <span id="successFamilyId">—</span></p>
+          <p><b>Parent Code:</b> <span id="successParentCode">—</span></p>
+          <p><b>Child Code:</b> <span id="successChildCode">—</span></p>
+          <p class="small-note">Proceed to the Digital Stub Release staff when instructed.</p>
+          <div class="form-actions">
+            <button class="primary-btn" type="button" id="registerAnotherBtn">Register Another Family</button>
+            <button class="ghost-btn" type="button" id="successHomeBtn">Home</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="staffAccessPanel" hidden>
+        <button class="ghost-btn back-inline" type="button" id="staffBackBtn">← Back</button>
+        <div id="firstSetup" hidden>
+          <div class="notice-box">
+            <b>First-time Administrator Setup</b>
+            <p>Create the first Administrator account for this event device.</p>
+          </div>
+          <form id="setupForm" class="stack-form" autocomplete="off">
+            <label for="setupName">Administrator Name</label>
+            <input id="setupName" name="setupName" type="text" required autocomplete="off" autocapitalize="words" enterkeyhint="next" placeholder="Staff name" />
+            <label for="setupPin">4-digit Admin PIN</label>
+            <input id="setupPin" name="setupPin" required type="tel" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="off" enterkeyhint="done" placeholder="4 digits" />
+            <button class="primary-btn login-action" type="submit">Create Administrator</button>
+          </form>
+        </div>
+
+        <form id="loginForm" class="stack-form" autocomplete="off" hidden>
+          <div class="notice-box">
+            <b>Staff Login</b>
+            <p>Authorized staff only. Parents should use Parent / Guardian Registration.</p>
+          </div>
+          <label for="loginStaff">Staff Account</label>
+          <select id="loginStaff" required aria-label="Staff Account"></select>
+          <label for="loginPin">Access PIN</label>
+          <input id="loginPin" name="loginPin" required type="tel" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="off" enterkeyhint="done" placeholder="Enter PIN" />
+          <button class="primary-btn login-action" type="submit">Staff Login</button>
+        </form>
+        <p class="tiny-note">Staff accounts are stored locally on this device. Do not share PINs.</p>
+      </div>
     </div>
   </section>
 
@@ -75,48 +131,17 @@
       </section>
 
       <nav class="module-grid" aria-label="Main modules">
-        <button class="module-btn" data-view="register" data-roles="ADMIN,REGISTRATION"><span>01</span><b>Registration</b><small>Staff encodes attendee details</small></button>
-        <button class="module-btn" data-view="release" data-roles="ADMIN,STUB"><span>02</span><b>Digital Stub Release</b><small>Release pass after registration</small></button>
-        <button class="module-btn" data-view="food" data-roles="ADMIN,FOOD"><span>03</span><b>Food Claim</b><small>One meal per person</small></button>
-        <button class="module-btn" data-view="raffle" data-roles="ADMIN,RAFFLE"><span>04</span><b>Raffle Claim</b><small>Kids only</small></button>
-        <button class="module-btn" data-view="draw" data-roles="ADMIN,RAFFLE"><span>05</span><b>Raffle Draw</b><small>No duplicate winners</small></button>
-        <button class="module-btn" data-view="records" data-roles="ADMIN,REGISTRATION,STUB,FOOD,RAFFLE"><span>06</span><b>Records</b><small>Search masterlist</small></button>
-        <button class="module-btn" data-view="admin" data-roles="ADMIN"><span>07</span><b>Admin & Audit</b><small>Staff, inventory, archive</small></button>
+        <button class="module-btn" data-view="release" data-roles="ADMIN,STUB"><span>01</span><b>Digital Stub Release</b><small>Release pass after parent registration</small></button>
+        <button class="module-btn" data-view="food" data-roles="ADMIN,FOOD"><span>02</span><b>Food Claim</b><small>One meal per person</small></button>
+        <button class="module-btn" data-view="raffle" data-roles="ADMIN,RAFFLE"><span>03</span><b>Raffle Claim</b><small>Kids only</small></button>
+        <button class="module-btn" data-view="draw" data-roles="ADMIN,RAFFLE"><span>04</span><b>Raffle Draw</b><small>No duplicate winners</small></button>
+        <button class="module-btn" data-view="records" data-roles="ADMIN,STUB,FOOD,RAFFLE,REGISTRATION"><span>05</span><b>Records</b><small>Search parent-submitted registrations</small></button>
+        <button class="module-btn" data-view="admin" data-roles="ADMIN"><span>06</span><b>Admin & Audit</b><small>Staff, inventory, archive</small></button>
       </nav>
 
       <section class="workspace">
-        <div class="view" id="view-register">
-          <div class="section-heading">
-            <div><p class="eyebrow">Staff Registration</p><h2>Encode Attendee Details</h2></div>
-            <p class="rule-note"><b>Staff-operated:</b> The logged-in Registration Staff encodes the details. Kids get Food + Raffle. Parents/Guardians get Food only.</p>
-          </div>
-          <div class="notice-box">
-            <b>For staff use only</b>
-            <p>The attendee or parent gives the information verbally. Staff enters the details below. The logged-in staff account and registration time are recorded automatically.</p>
-          </div>
-          <form id="registrationForm" class="form-grid" autocomplete="off">
-            <label>Full Name<input id="fullName" name="fullName" required placeholder="First name Last name" /></label>
-            <label>Location / Address<input id="location" name="location" required placeholder="City / Barangay / Address" /></label>
-            <label>Contact Number<input id="contact" name="contact" required inputmode="tel" placeholder="09XXXXXXXXX" /></label>
-            <label>Age<input id="age" name="age" required min="0" max="120" type="number" inputmode="numeric" placeholder="Age" /></label>
-            <label>Family / Household ID <small>(optional)</small><input id="familyId" name="familyId" placeholder="Leave blank to create a new Family ID" /></label>
-            <label>Linked Parent / Child <small>(optional)</small><input id="linkedPerson" name="linkedPerson" placeholder="Name of accompanying parent or child" /></label>
-            <label class="full-span">Attendee Type
-              <div class="segmented" role="radiogroup" aria-label="Attendee type">
-                <label><input type="radio" name="attendeeType" value="KID" checked /><span>Kid</span></label>
-                <label><input type="radio" name="attendeeType" value="PARENT" /><span>Parent / Guardian</span></label>
-              </div>
-            </label>
-            <label class="privacy-check full-span"><input type="checkbox" id="privacyConsent" required /><span>I confirm that the attendee or parent/guardian provided these details for event registration and authorized event use.</span></label>
-            <div class="full-span form-actions">
-              <button class="primary-btn" type="submit">Save Registration</button>
-              <button class="ghost-btn" type="reset">Clear</button>
-            </div>
-          </form>
-        </div>
-
         <div class="view" id="view-release">
-          <div class="section-heading"><div><p class="eyebrow">Digital Stub Release</p><h2>Release Digital Pass</h2></div><p class="rule-note">Find a registered attendee and release their digital stub.</p></div>
+          <div class="section-heading"><div><p class="eyebrow">Digital Stub Release</p><h2>Release Digital Pass</h2></div><p class="rule-note">Search the parent-submitted registration by name, code, contact number, or Family ID.</p></div>
           <div class="scanner-actions">
             <button class="primary-btn" data-scan-target="release">Use Camera Scanner</button><span>or</span>
             <input id="releaseSearch" placeholder="Name, attendee code, contact, or family ID" />
@@ -166,7 +191,7 @@
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Code</th><th>Name</th><th>Type</th><th>Family</th><th>Stub</th><th>Food</th><th>Raffle</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Code</th><th>Name</th><th>Type</th><th>Family</th><th>Registered By</th><th>Stub</th><th>Food</th><th>Raffle</th><th>Actions</th></tr></thead>
               <tbody id="recordsBody"></tbody>
             </table>
           </div>
@@ -182,10 +207,10 @@
             </section>
             <section class="admin-card">
               <h3>Add Staff Account</h3>
-              <p>Create separate staff accounts so each action is recorded under the correct staff member.</p>
+              <p>Parents handle registration. Staff accounts are only for event operations.</p>
               <form id="staffForm" class="stack-form compact">
                 <input id="newStaffName" required placeholder="Staff name" />
-                <select id="newStaffRole"><option value="REGISTRATION">Registration — Encode Details</option><option value="STUB">Digital Stub Release</option><option value="FOOD">Food Claiming</option><option value="RAFFLE">Raffle Claiming / Draw</option><option value="ADMIN">Administrator</option></select>
+                <select id="newStaffRole"><option value="STUB">Digital Stub Release</option><option value="FOOD">Food Claiming</option><option value="RAFFLE">Raffle Claiming / Draw</option><option value="ADMIN">Administrator</option></select>
                 <input id="newStaffPin" required type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="4-digit PIN" />
                 <button class="primary-btn" type="submit">Add Staff</button>
               </form>
@@ -194,7 +219,7 @@
             <section class="admin-card">
               <h3>Device Sync Status</h3>
               <div class="sync-status"><span class="status-dot"></span><b>Local device storage</b></div>
-              <p>This GitHub Pages build works offline and syncs open tabs on this same browser. Different phones do not live-sync without a shared backend.</p>
+              <p>Parent registrations made on this device are immediately available to staff on this same device/browser. Different phones do not live-sync without a shared backend.</p>
               <button class="ghost-btn" id="requestPersistBtn">Protect Offline Storage</button>
             </section>
             <section class="admin-card danger-card">
@@ -205,7 +230,7 @@
           </div>
           <div class="subsection">
             <div class="section-heading compact-heading"><div><h3>Audit Trail</h3></div><button class="ghost-btn" id="exportAuditBtn">Export Audit CSV</button></div>
-            <div class="table-wrap"><table><thead><tr><th>Time</th><th>Staff</th><th>Role</th><th>Action</th><th>Attendee</th><th>Details</th></tr></thead><tbody id="auditBody"></tbody></table></div>
+            <div class="table-wrap"><table><thead><tr><th>Time</th><th>Staff / Source</th><th>Role</th><th>Action</th><th>Attendee</th><th>Details</th></tr></thead><tbody id="auditBody"></tbody></table></div>
           </div>
         </div>
       </section>
