@@ -29,30 +29,75 @@
     });
   }
 
+  function renderParentOnlyReleaseSearch(q) {
+    const target = document.getElementById('releaseResults');
+    if (!target) return;
+
+    const previousSearch = window.searchAttendees;
+    window.searchAttendees = (query) => improvedSearch(query, 'PARENT');
+
+    try {
+      if (typeof window.renderSearchResults === 'function') {
+        window.renderSearchResults('releaseResults', q, 'release');
+      }
+    } finally {
+      window.searchAttendees = previousSearch;
+    }
+
+    if (!target.querySelector('.result-card')) {
+      target.classList.add('empty-state');
+      target.textContent = q.trim()
+        ? 'No matching Parent / Guardian found.'
+        : 'Search a Parent / Guardian name.';
+    }
+  }
+
   function installDigitalStubSearchFix() {
     if (typeof attendees === 'undefined' || typeof renderSearchResults !== 'function') return;
 
+    // Keep flexible partial-name searching everywhere else in the system.
     window.searchAttendees = improvedSearch;
 
-    const input = document.getElementById('releaseSearch');
-    const button = document.getElementById('releaseSearchBtn');
-    if (!input || !button) return;
+    const oldInput = document.getElementById('releaseSearch');
+    const oldButton = document.getElementById('releaseSearchBtn');
+    if (!oldInput || !oldButton) return;
+
+    // Replace these two controls so the old app.js listeners cannot return child results.
+    const input = oldInput.cloneNode(true);
+    const button = oldButton.cloneNode(true);
+    oldInput.replaceWith(input);
+    oldButton.replaceWith(button);
 
     input.type = 'search';
     input.autocomplete = 'off';
     input.enterKeyHint = 'search';
     input.setAttribute('inputmode', 'search');
-    input.placeholder = 'Type parent or child name';
+    input.placeholder = 'Type Parent / Guardian name';
+    input.setAttribute('aria-label', 'Search Parent or Guardian name');
+    button.textContent = 'Search Parent';
 
-    const run = () => renderSearchResults('releaseResults', input.value, 'release');
+    const note = document.querySelector('#view-release .rule-note');
+    if (note) note.textContent = 'Search by Parent / Guardian name only. Open the Family Stub to see the children and process the household.';
 
+    const run = () => renderParentOnlyReleaseSearch(input.value);
     input.addEventListener('input', run);
     input.addEventListener('search', run);
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        run();
+      }
+    });
     input.addEventListener('focus', () => {
       if (input.value.trim()) run();
     });
+    button.addEventListener('click', run);
 
-    button.textContent = 'Search Name';
+    const target = document.getElementById('releaseResults');
+    if (target) {
+      target.classList.add('empty-state');
+      target.textContent = 'Search a Parent / Guardian name.';
+    }
   }
 
   if (document.readyState === 'loading') {
