@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#103b2d" />
-  <meta name="description" content="CHRISTmas in Our Hearts 2026 registration, digital stub, food, and raffle system." />
+  <meta name="description" content="CHRISTmas in Our Hearts 2026 staff-operated registration, digital stub, food, and raffle system." />
   <title>CHRISTmas in Our Hearts 2026</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
@@ -18,18 +18,18 @@
       <div class="brand-mark large" aria-hidden="true">♥</div>
       <p class="eyebrow">Heart Warriors Philippines Inc.</p>
       <h1>CHRISTmas in Our Hearts 2026</h1>
-      <p class="login-sub">Digital Registration • Digital Stub • Food • Raffle</p>
+      <p class="login-sub">Staff Registration • Digital Stub • Food • Raffle</p>
 
       <div id="firstSetup" hidden>
         <div class="notice-box">
           <b>Step 1 — Create Administrator</b>
-          <p>Tap the fields below, enter your name and a 4-digit PIN, then tap Create Administrator. Staff Login will appear after setup.</p>
+          <p>Enter the administrator name and a 4-digit PIN. The Administrator can then create staff accounts.</p>
         </div>
         <form id="setupForm" class="stack-form" autocomplete="off">
           <label for="setupName">Administrator Name</label>
-          <input id="setupName" name="setupName" type="text" required autocomplete="off" autocapitalize="words" enterkeyhint="next" placeholder="Tap here and type staff name" />
+          <input id="setupName" name="setupName" type="text" required autocomplete="off" autocapitalize="words" enterkeyhint="next" placeholder="Staff name" />
           <label for="setupPin">4-digit Admin PIN</label>
-          <input id="setupPin" name="setupPin" required type="tel" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="off" enterkeyhint="done" placeholder="Tap here and enter 4 digits" />
+          <input id="setupPin" name="setupPin" required type="tel" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="off" enterkeyhint="done" placeholder="4 digits" />
           <button class="primary-btn login-action" type="submit">Create Administrator</button>
         </form>
       </div>
@@ -37,12 +37,12 @@
       <form id="loginForm" class="stack-form" autocomplete="off" hidden>
         <div class="notice-box">
           <b>Staff Login</b>
-          <p>Select your staff account, enter your 4-digit PIN, then tap Staff Login.</p>
+          <p>Only authorized event staff can encode registrations and process claims.</p>
         </div>
         <label for="loginStaff">Staff Account</label>
         <select id="loginStaff" required aria-label="Staff Account"></select>
         <label for="loginPin">Access PIN</label>
-        <input id="loginPin" name="loginPin" required type="tel" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="off" enterkeyhint="done" placeholder="Tap here and enter PIN" />
+        <input id="loginPin" name="loginPin" required type="tel" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="off" enterkeyhint="done" placeholder="Enter PIN" />
         <button class="primary-btn login-action" type="submit">Staff Login</button>
       </form>
       <p class="tiny-note">Staff accounts are stored locally on this device. Do not share PINs.</p>
@@ -75,7 +75,7 @@
       </section>
 
       <nav class="module-grid" aria-label="Main modules">
-        <button class="module-btn" data-view="register" data-roles="ADMIN,REGISTRATION"><span>01</span><b>Registration</b><small>Add kids and parents</small></button>
+        <button class="module-btn" data-view="register" data-roles="ADMIN,REGISTRATION"><span>01</span><b>Registration</b><small>Staff encodes attendee details</small></button>
         <button class="module-btn" data-view="release" data-roles="ADMIN,STUB"><span>02</span><b>Digital Stub Release</b><small>Release pass after registration</small></button>
         <button class="module-btn" data-view="food" data-roles="ADMIN,FOOD"><span>03</span><b>Food Claim</b><small>One meal per person</small></button>
         <button class="module-btn" data-view="raffle" data-roles="ADMIN,RAFFLE"><span>04</span><b>Raffle Claim</b><small>Kids only</small></button>
@@ -87,8 +87,12 @@
       <section class="workspace">
         <div class="view" id="view-register">
           <div class="section-heading">
-            <div><p class="eyebrow">Registration</p><h2>Register Attendee</h2></div>
-            <p class="rule-note"><b>Rule:</b> Kids get Food + Raffle. Parents/Guardians get Food only.</p>
+            <div><p class="eyebrow">Staff Registration</p><h2>Encode Attendee Details</h2></div>
+            <p class="rule-note"><b>Staff-operated:</b> The logged-in Registration Staff encodes the details. Kids get Food + Raffle. Parents/Guardians get Food only.</p>
+          </div>
+          <div class="notice-box">
+            <b>For staff use only</b>
+            <p>The attendee or parent gives the information verbally. Staff enters the details below. The logged-in staff account and registration time are recorded automatically.</p>
           </div>
           <form id="registrationForm" class="form-grid" autocomplete="off">
             <label>Full Name<input id="fullName" name="fullName" required placeholder="First name Last name" /></label>
@@ -103,9 +107,9 @@
                 <label><input type="radio" name="attendeeType" value="PARENT" /><span>Parent / Guardian</span></label>
               </div>
             </label>
-            <label class="privacy-check full-span"><input type="checkbox" id="privacyConsent" required /><span>I acknowledge that the registration information will be used only for event attendance, food distribution, raffle administration, reporting, and authorized event records.</span></label>
+            <label class="privacy-check full-span"><input type="checkbox" id="privacyConsent" required /><span>I confirm that the attendee or parent/guardian provided these details for event registration and authorized event use.</span></label>
             <div class="full-span form-actions">
-              <button class="primary-btn" type="submit">Register Attendee</button>
+              <button class="primary-btn" type="submit">Save Registration</button>
               <button class="ghost-btn" type="reset">Clear</button>
             </div>
           </form>
@@ -178,9 +182,10 @@
             </section>
             <section class="admin-card">
               <h3>Add Staff Account</h3>
+              <p>Create separate staff accounts so each action is recorded under the correct staff member.</p>
               <form id="staffForm" class="stack-form compact">
                 <input id="newStaffName" required placeholder="Staff name" />
-                <select id="newStaffRole"><option value="REGISTRATION">Registration</option><option value="STUB">Digital Stub Release</option><option value="FOOD">Food Claiming</option><option value="RAFFLE">Raffle Claiming / Draw</option><option value="ADMIN">Administrator</option></select>
+                <select id="newStaffRole"><option value="REGISTRATION">Registration — Encode Details</option><option value="STUB">Digital Stub Release</option><option value="FOOD">Food Claiming</option><option value="RAFFLE">Raffle Claiming / Draw</option><option value="ADMIN">Administrator</option></select>
                 <input id="newStaffPin" required type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="4-digit PIN" />
                 <button class="primary-btn" type="submit">Add Staff</button>
               </form>
