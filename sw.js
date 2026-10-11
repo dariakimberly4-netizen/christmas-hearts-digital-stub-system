@@ -1,5 +1,5 @@
-const CACHE='christmas-hearts-2026-v24';
-const CORE=['./','./index.html','./styles.css','./app.js','./search-fix.js','./pass-actions.js','./family-stub.js','./family-wallet.js','./admin-tools.js','./reliability-tools.js','./sync-config.js','./sync-center.js','./demo-enhancements.js','./clear-all-test-data.html','./manifest.webmanifest','./icon.svg'];
+const CACHE='christmas-hearts-2026-v25';
+const CORE=['./','./index.html','./styles.css','./app.js','./search-fix.js','./pass-actions.js','./family-stub.js','./family-wallet.js','./wallet-open-fix.js','./admin-tools.js','./reliability-tools.js','./sync-config.js','./sync-center.js','./demo-enhancements.js','./clear-all-test-data.html','./manifest.webmanifest','./icon.svg'];
 const QR='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
 
 function cleanHeaders(response){
@@ -9,20 +9,31 @@ function cleanHeaders(response){
   return headers;
 }
 
+function versionCoreScripts(text){
+  const files=['app.js','search-fix.js','pass-actions.js'];
+  files.forEach(file=>{
+    const escaped=file.replace('.','\\.');
+    text=text.replace(new RegExp(`src=["']${escaped}(?:\\?[^"']*)?["']`,'g'),`src="${file}?v=25"`);
+  });
+  return text;
+}
+
 async function transformResponse(request,response){
   if(!response||!response.ok)return response;
   const type=response.headers.get('content-type')||'';
   if(type.includes('text/html')){
     let text=await response.text();
-    if(!text.includes('search-fix.js'))text=text.replace('</body>','  <script src="search-fix.js" defer></script>\n</body>');
-    if(!text.includes('pass-actions.js'))text=text.replace('</body>','  <script src="pass-actions.js" defer></script>\n</body>');
-    if(!text.includes('family-stub.js'))text=text.replace('</body>','  <script src="family-stub.js" defer></script>\n</body>');
-    if(!text.includes('family-wallet.js'))text=text.replace('</body>','  <script src="family-wallet.js" defer></script>\n</body>');
-    if(!text.includes('admin-tools.js'))text=text.replace('</body>','  <script src="admin-tools.js" defer></script>\n</body>');
-    if(!text.includes('reliability-tools.js'))text=text.replace('</body>','  <script src="reliability-tools.js" defer></script>\n</body>');
-    if(!text.includes('sync-config.js'))text=text.replace('</body>','  <script src="sync-config.js" defer></script>\n</body>');
-    if(!text.includes('sync-center.js'))text=text.replace('</body>','  <script src="sync-center.js" defer></script>\n</body>');
-    if(!text.includes('demo-enhancements.js'))text=text.replace('</body>','  <script src="demo-enhancements.js" defer></script>\n</body>');
+    text=versionCoreScripts(text);
+    const helperBlock=`
+  <script src="reliability-tools.js?v=25" defer></script>
+  <script src="family-stub.js?v=25" defer></script>
+  <script src="family-wallet.js?v=25" defer></script>
+  <script src="wallet-open-fix.js?v=25" defer></script>
+  <script src="admin-tools.js?v=25" defer></script>
+  <script src="demo-enhancements.js?v=25" defer></script>
+  <script src="sync-config.js?v=25" defer></script>
+  <script src="sync-center.js?v=25" defer></script>`;
+    if(!text.includes('wallet-open-fix.js?v=25'))text=text.replace('</head>',`${helperBlock}\n</head>`);
     return new Response(text,{status:response.status,statusText:response.statusText,headers:cleanHeaders(response)});
   }
   return response;
@@ -52,7 +63,7 @@ self.addEventListener('fetch',event=>{
   if(event.request.method!=='GET')return;
   event.respondWith((async()=>{
     try{
-      const fresh=await fetch(event.request);
+      const fresh=await fetch(event.request,{cache:'no-store'});
       const transformed=await transformResponse(event.request,fresh);
       const cache=await caches.open(CACHE);
       cache.put(event.request,transformed.clone());
