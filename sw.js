@@ -1,5 +1,5 @@
-const CACHE='christmas-hearts-2026-v11';
-const CORE=['./','./index.html','./styles.css','./app.js','./search-fix.js','./manifest.webmanifest','./icon.svg'];
+const CACHE='christmas-hearts-2026-v12';
+const CORE=['./','./index.html','./styles.css','./app.js','./search-fix.js','./pass-actions.js','./manifest.webmanifest','./icon.svg'];
 const QR='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
 
 function cleanHeaders(response){
@@ -16,6 +16,9 @@ async function transformResponse(request,response){
     let text=await response.text();
     if(!text.includes('search-fix.js')){
       text=text.replace('</body>','  <script src="search-fix.js" defer></script>\n</body>');
+    }
+    if(!text.includes('pass-actions.js')){
+      text=text.replace('</body>','  <script src="pass-actions.js" defer></script>\n</body>');
     }
     return new Response(text,{status:response.status,statusText:response.statusText,headers:cleanHeaders(response)});
   }
