@@ -196,3 +196,13 @@
     if(passButton){currentPassId=passButton.dataset.id;setTimeout(makePassClickable,0)}
   },true);
 })();
+
+// Load the Family QR Wallet directly from a script that is already part of index.html.
+// This makes the separate Digital Stub / Food QR view available on the first visit.
+(()=>{
+  if([...document.scripts].some(s=>(s.getAttribute('src')||'').split('?')[0].endsWith('family-wallet.js')))return;
+  const s=document.createElement('script');
+  s.src='family-wallet.js?v=23';
+  s.async=false;
+  document.head.appendChild(s);
+})();
