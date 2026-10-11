@@ -87,27 +87,44 @@
       <section class="workspace">
         <div class="view" id="view-register">
           <div class="section-heading">
-            <div><p class="eyebrow">Parent / Guardian Registration</p><h2>Parent Registers — Encoder Types</h2></div>
-            <p class="rule-note"><b>Important:</b> The Parent/Guardian provides the information. The Registration Encoder only types what the Parent/Guardian gives.</p>
+            <div><p class="eyebrow">Parent / Guardian Registration</p><h2>Simple Registration</h2></div>
+            <p class="rule-note"><b>Important:</b> The Parent/Guardian provides the information. The Registration Encoder types it.</p>
           </div>
 
           <div class="notice-box">
             <b>Registration desk flow</b>
-            <p>The Parent/Guardian registers for themselves and one child. The logged-in encoder enters the details. One Family ID links the Parent/Guardian and child. Kids get Food + Raffle. Parents/Guardians get Food only.</p>
+            <p>Register one Parent/Guardian and one or more children. All children receive their own attendee record and QR code under one Family ID. Kids get Food + Raffle. Parents/Guardians get Food only.</p>
           </div>
 
           <form id="registrationForm" class="form-grid" autocomplete="off">
             <div class="full-span notice-box"><b>Parent / Guardian Details</b></div>
             <label>Parent / Guardian Full Name<input id="parentFullName" name="parentFullName" required placeholder="First name Last name" /></label>
             <label>Parent / Guardian Age<input id="parentAge" name="parentAge" required min="18" max="120" type="number" inputmode="numeric" placeholder="Age" /></label>
-            <label>Parent Location / Address<input id="parentLocation" name="parentLocation" required placeholder="City / Barangay / Address" /></label>
-            <label>Parent Contact Number<input id="parentContact" name="parentContact" required inputmode="tel" placeholder="09XXXXXXXXX" /></label>
+            <label>Location / Address<input id="parentLocation" name="parentLocation" required placeholder="City / Barangay / Address" /></label>
+            <label>Contact Number<input id="parentContact" name="parentContact" required inputmode="tel" placeholder="09XXXXXXXXX" /></label>
+            <label class="full-span">Relationship to Child
+              <select id="relationship" name="relationship" required>
+                <option value="">Select relationship</option>
+                <option value="Mother">Mother</option>
+                <option value="Father">Father</option>
+                <option value="Guardian">Guardian</option>
+                <option value="Other">Other</option>
+              </select>
+            </label>
 
-            <div class="full-span notice-box"><b>Child Details</b></div>
-            <label>Child Full Name<input id="childFullName" name="childFullName" required placeholder="First name Last name" /></label>
-            <label>Child Age<input id="childAge" name="childAge" required min="0" max="17" type="number" inputmode="numeric" placeholder="Age" /></label>
-            <label>Child Location / Address<input id="childLocation" name="childLocation" required placeholder="City / Barangay / Address" /></label>
-            <label>Child Contact Number<input id="childContact" name="childContact" required inputmode="tel" placeholder="Use parent number if same" /></label>
+            <div class="full-span notice-box"><b>Child Details</b><p>The child automatically uses the Parent/Guardian address and contact number.</p></div>
+            <div id="childrenContainer" class="full-span">
+              <div class="child-entry notice-box" data-child-index="1">
+                <b>Child 1</b>
+                <div class="form-grid" style="margin-top:10px">
+                  <label>Child Full Name<input data-child-name required placeholder="First name Last name" /></label>
+                  <label>Child Age<input data-child-age required min="0" max="17" type="number" inputmode="numeric" placeholder="Age" /></label>
+                </div>
+              </div>
+            </div>
+            <div class="full-span form-actions"><button class="ghost-btn" type="button" id="addChildBtn">+ Add Another Child</button></div>
+
+            <label class="full-span">Special Notes <small>(optional)</small><input id="specialNotes" name="specialNotes" placeholder="Allergy, dietary, accessibility, or other important note" /></label>
 
             <label class="privacy-check full-span"><input type="checkbox" id="privacyConsent" required /><span>I confirm that the Parent/Guardian provided and confirmed these details for event registration and authorized event use.</span></label>
             <div class="full-span form-actions">
@@ -120,7 +137,7 @@
             <b>Registration Saved</b>
             <p><b>Family ID:</b> <span id="successFamilyId">—</span></p>
             <p><b>Parent Code:</b> <span id="successParentCode">—</span></p>
-            <p><b>Child Code:</b> <span id="successChildCode">—</span></p>
+            <p><b>Child Code(s):</b> <span id="successChildCode">—</span></p>
             <button class="ghost-btn" type="button" id="registerAnotherBtn">Register Another Family</button>
           </div>
         </div>
