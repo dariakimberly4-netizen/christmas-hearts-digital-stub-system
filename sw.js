@@ -1,5 +1,5 @@
-const CACHE='christmas-hearts-2026-v17';
-const CORE=['./','./index.html','./styles.css','./app.js','./search-fix.js','./pass-actions.js','./family-stub.js','./admin-tools.js','./manifest.webmanifest','./icon.svg'];
+const CACHE='christmas-hearts-2026-v18';
+const CORE=['./','./index.html','./styles.css','./app.js','./search-fix.js','./pass-actions.js','./family-stub.js','./admin-tools.js','./clear-all-test-data.html','./manifest.webmanifest','./icon.svg'];
 const QR='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
 
 function cleanHeaders(response){
