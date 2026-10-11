@@ -1,5 +1,5 @@
-const CACHE='christmas-hearts-2026-v22';
-const CORE=['./','./index.html','./styles.css','./app.js','./search-fix.js','./pass-actions.js','./family-stub.js','./admin-tools.js','./reliability-tools.js','./sync-config.js','./sync-center.js','./demo-enhancements.js','./clear-all-test-data.html','./manifest.webmanifest','./icon.svg'];
+const CACHE='christmas-hearts-2026-v23';
+const CORE=['./','./index.html','./styles.css','./app.js','./search-fix.js','./pass-actions.js','./family-stub.js','./family-wallet.js','./admin-tools.js','./reliability-tools.js','./sync-config.js','./sync-center.js','./demo-enhancements.js','./clear-all-test-data.html','./manifest.webmanifest','./icon.svg'];
 const QR='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
 
 function cleanHeaders(response){
@@ -17,6 +17,7 @@ async function transformResponse(request,response){
     if(!text.includes('search-fix.js'))text=text.replace('</body>','  <script src="search-fix.js" defer></script>\n</body>');
     if(!text.includes('pass-actions.js'))text=text.replace('</body>','  <script src="pass-actions.js" defer></script>\n</body>');
     if(!text.includes('family-stub.js'))text=text.replace('</body>','  <script src="family-stub.js" defer></script>\n</body>');
+    if(!text.includes('family-wallet.js'))text=text.replace('</body>','  <script src="family-wallet.js" defer></script>\n</body>');
     if(!text.includes('admin-tools.js'))text=text.replace('</body>','  <script src="admin-tools.js" defer></script>\n</body>');
     if(!text.includes('reliability-tools.js'))text=text.replace('</body>','  <script src="reliability-tools.js" defer></script>\n</body>');
     if(!text.includes('sync-config.js'))text=text.replace('</body>','  <script src="sync-config.js" defer></script>\n</body>');
