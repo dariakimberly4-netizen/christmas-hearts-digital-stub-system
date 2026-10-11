@@ -102,7 +102,8 @@
             <label>Parent / Guardian Age<input id="parentAge" name="parentAge" required min="18" max="120" type="number" inputmode="numeric" placeholder="Age" /></label>
             <label>Location / Address<input id="parentLocation" name="parentLocation" required placeholder="City / Barangay / Address" /></label>
             <label>Contact Number<input id="parentContact" name="parentContact" required inputmode="tel" placeholder="09XXXXXXXXX" /></label>
-            <label class="full-span">Relationship to Child
+            <label>Emergency Contact <small>(optional)</small><input id="emergencyContact" name="emergencyContact" placeholder="Name / mobile number" /></label>
+            <label>Relationship to Child
               <select id="relationship" name="relationship" required>
                 <option value="">Select relationship</option>
                 <option value="Mother">Mother</option>
@@ -119,6 +120,14 @@
                 <div class="form-grid" style="margin-top:10px">
                   <label>Child Full Name<input data-child-name required placeholder="First name Last name" /></label>
                   <label>Child Age<input data-child-age required min="0" max="17" type="number" inputmode="numeric" placeholder="Age" /></label>
+                  <label class="full-span">Child Sex / Gender <small>(optional)</small>
+                    <select data-child-gender>
+                      <option value="">Not specified</option>
+                      <option value="Female">Female</option>
+                      <option value="Male">Male</option>
+                      <option value="Prefer not to say">Prefer not to say</option>
+                    </select>
+                  </label>
                 </div>
               </div>
             </div>
@@ -126,6 +135,7 @@
 
             <label class="full-span">Special Notes <small>(optional)</small><input id="specialNotes" name="specialNotes" placeholder="Allergy, dietary, accessibility, or other important note" /></label>
 
+            <label class="privacy-check full-span"><input type="checkbox" id="photoVideoConsent" /><span>Optional: Parent/Guardian agrees to event photo/video documentation and authorized event posting.</span></label>
             <label class="privacy-check full-span"><input type="checkbox" id="privacyConsent" required /><span>I confirm that the Parent/Guardian provided and confirmed these details for event registration and authorized event use.</span></label>
             <div class="full-span form-actions">
               <button class="primary-btn" type="submit">Save Registration</button>
@@ -136,6 +146,7 @@
           <div id="registrationSuccess" class="notice-box" hidden>
             <b>Registration Saved</b>
             <p><b>Family ID:</b> <span id="successFamilyId">—</span></p>
+            <p><b>Total Registered:</b> <span id="successTotal">—</span></p>
             <p><b>Parent Code:</b> <span id="successParentCode">—</span></p>
             <p><b>Child Code(s):</b> <span id="successChildCode">—</span></p>
             <button class="ghost-btn" type="button" id="registerAnotherBtn">Register Another Family</button>
