@@ -11,7 +11,7 @@ const $=id=>document.getElementById(id), $$=s=>[...document.querySelectorAll(s)]
 function loadJson(k,f,s=false){try{return JSON.parse((s?sessionStorage:localStorage).getItem(k))??f}catch{return f}}
 function store(k,v,s=false){(s?sessionStorage:localStorage).setItem(k,JSON.stringify(v))}
 function save(){store(KEYS.attendees,attendees);store(KEYS.winners,winners);store(KEYS.audit,audit);store(KEYS.staff,staff);store(KEYS.settings,settings);updateStats();renderRecords();renderWinners();renderAudit();renderStaff()}
-function normalizeAttendee(a){return {...a,familyId:a.familyId||'',registeredBy:a.registeredBy||'Legacy',registrationSource:a.registrationSource||'LEGACY',stubReleasedAt:a.stubReleasedAt||null,stubReleasedBy:a.stubReleasedBy||null,foodClaimedAt:a.foodClaimedAt||null,foodClaimedBy:a.foodClaimedBy||null,raffleClaimedAt:a.raffleClaimedAt||null,raffleClaimedBy:a.raffleClaimedBy||null,privacyConsent:a.privacyConsent!==false}}
+function normalizeAttendee(a){return {...a,familyId:a.familyId||'',registeredBy:a.registeredBy||'Legacy',registrationSource:a.registrationSource||'LEGACY',relationship:a.relationship||'',notes:a.notes||'',stubReleasedAt:a.stubReleasedAt||null,stubReleasedBy:a.stubReleasedBy||null,foodClaimedAt:a.foodClaimedAt||null,foodClaimedBy:a.foodClaimedBy||null,raffleClaimedAt:a.raffleClaimedAt||null,raffleClaimedBy:a.raffleClaimedBy||null,privacyConsent:a.privacyConsent!==false}}
 function nowIso(){return new Date().toISOString()}
 function humanTime(v){return v?new Date(v).toLocaleString([], {dateStyle:'medium',timeStyle:'short'}):'—'}
 function norm(v){return String(v||'').trim().toLowerCase()}
@@ -80,6 +80,11 @@ function showView(name){
 }
 $$('.module-btn').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));
 
+function childEntryHtml(index){return `<div class="child-entry notice-box" data-child-index="${index}"><div class="form-actions" style="justify-content:space-between"><b>Child ${index}</b>${index>1?`<button class="mini-btn danger-mini" type="button" data-action="remove-child">Remove</button>`:''}</div><div class="form-grid" style="margin-top:10px"><label>Child Full Name<input data-child-name required placeholder="First name Last name" /></label><label>Child Age<input data-child-age required min="0" max="17" type="number" inputmode="numeric" placeholder="Age" /></label></div></div>`}
+function resetChildren(){if($('childrenContainer'))$('childrenContainer').innerHTML=childEntryHtml(1)}
+function renumberChildren(){$$('#childrenContainer .child-entry').forEach((block,i)=>{const n=i+1;block.dataset.childIndex=n;const b=block.querySelector('b');if(b)b.textContent=`Child ${n}`;const remove=block.querySelector('[data-action="remove-child"]');if(n===1&&remove)remove.remove()})}
+$('addChildBtn').addEventListener('click',()=>{const c=$('childrenContainer'),count=c.querySelectorAll('.child-entry').length;if(count>=10)return toast('Maximum of 10 children per family registration.');c.insertAdjacentHTML('beforeend',childEntryHtml(count+1));c.lastElementChild?.querySelector('[data-child-name]')?.focus()});
+
 $('registrationForm').addEventListener('submit',e=>{
   e.preventDefault();
   if(!['ADMIN','REGISTRATION'].includes(currentRole()))return toast('Registration Encoder access required.');
@@ -88,37 +93,34 @@ $('registrationForm').addEventListener('submit',e=>{
   const parentAge=Number(f.get('parentAge'));
   const parentLocation=String(f.get('parentLocation')||'').trim();
   const parentContact=String(f.get('parentContact')||'').trim();
-  const childName=String(f.get('childFullName')||'').trim();
-  const childAge=Number(f.get('childAge'));
-  const childLocation=String(f.get('childLocation')||'').trim();
-  const childContact=String(f.get('childContact')||'').trim();
-  if(!parentName||!parentLocation||!parentContact||!childName||!childLocation||!childContact||!Number.isFinite(parentAge)||!Number.isFinite(childAge)||!$('privacyConsent').checked)return toast('Complete all Parent/Guardian and child details and confirm the acknowledgement.');
+  const relationship=String(f.get('relationship')||'').trim();
+  const notes=String(f.get('specialNotes')||'').trim();
+  const children=$$('#childrenContainer .child-entry').map(block=>({name:block.querySelector('[data-child-name]')?.value.trim()||'',age:Number(block.querySelector('[data-child-age]')?.value)}));
+  if(!parentName||!parentLocation||!parentContact||!relationship||!Number.isFinite(parentAge)||!children.length||children.some(c=>!c.name||!Number.isFinite(c.age))||!$('privacyConsent').checked)return toast('Complete the Parent/Guardian details, relationship, child details, and acknowledgement.');
   const duplicateParent=attendees.find(a=>a.type==='PARENT'&&norm(a.fullName)===norm(parentName)&&a.age===parentAge);
-  const duplicateChild=attendees.find(a=>a.type==='KID'&&norm(a.fullName)===norm(childName)&&a.age===childAge);
-  if((duplicateParent||duplicateChild)&&!confirm('A possible duplicate registration was found. Save this registration anyway?'))return;
-  const familyId=makeFamilyId(),registeredAt=nowIso(),encoder=currentStaff();
-  const parent=normalizeAttendee({id:crypto.randomUUID?.()||String(Date.now()+Math.random()),code:makeCode(),fullName:parentName,location:parentLocation,contact:parentContact,age:parentAge,type:'PARENT',linkedPerson:childName,familyId,registeredAt,registeredBy:encoder,registrationSource:'STAFF_ENCODER',privacyConsent:true});
+  const duplicateChildren=children.filter(c=>attendees.some(a=>a.type==='KID'&&norm(a.fullName)===norm(c.name)&&a.age===c.age));
+  if((duplicateParent||duplicateChildren.length)&&!confirm('A possible duplicate registration was found. Save this registration anyway?'))return;
+  const familyId=makeFamilyId(),registeredAt=nowIso(),encoder=currentStaff(),childNames=children.map(c=>c.name);
+  const parent=normalizeAttendee({id:crypto.randomUUID?.()||String(Date.now()+Math.random()),code:makeCode(),fullName:parentName,location:parentLocation,contact:parentContact,age:parentAge,type:'PARENT',linkedPerson:childNames.join(', '),familyId,relationship,notes,registeredAt,registeredBy:encoder,registrationSource:'STAFF_ENCODER',privacyConsent:true});
   attendees.unshift(parent);
-  const child=normalizeAttendee({id:crypto.randomUUID?.()||String(Date.now()+Math.random()),code:makeCode(),fullName:childName,location:childLocation,contact:childContact,age:childAge,type:'KID',linkedPerson:parentName,familyId,registeredAt,registeredBy:encoder,registrationSource:'STAFF_ENCODER',privacyConsent:true});
-  attendees.unshift(child);
-  logAction('PARENT REGISTERED',parent,`Family ${familyId}; information provided by Parent/Guardian; encoded by ${encoder}`);
-  logAction('CHILD REGISTERED',child,`Family ${familyId}; information provided by Parent/Guardian; encoded by ${encoder}`);
+  const childRecords=children.map(c=>normalizeAttendee({id:crypto.randomUUID?.()||String(Date.now()+Math.random()),code:makeCode(),fullName:c.name,location:parentLocation,contact:parentContact,age:c.age,type:'KID',linkedPerson:parentName,familyId,relationship,notes,registeredAt,registeredBy:encoder,registrationSource:'STAFF_ENCODER',privacyConsent:true}));
+  childRecords.forEach(child=>attendees.unshift(child));
+  logAction('PARENT REGISTERED',parent,`Family ${familyId}; ${relationship}; ${childRecords.length} child/children; encoded by ${encoder}`);
+  childRecords.forEach(child=>logAction('CHILD REGISTERED',child,`Family ${familyId}; linked parent ${parentName}; encoded by ${encoder}`));
   save();
   $('successFamilyId').textContent=familyId;
   $('successParentCode').textContent=parent.code;
-  $('successChildCode').textContent=child.code;
+  $('successChildCode').textContent=childRecords.map(c=>c.code).join(' • ');
   $('registrationSuccess').hidden=false;
   e.currentTarget.reset();
-  toast(`Registration saved by ${encoder}.`);
+  resetChildren();
+  toast(`Registration saved for ${1+childRecords.length} attendee(s) by ${encoder}.`);
 });
 
-$('registerAnotherBtn').addEventListener('click',()=>{
-  $('registrationSuccess').hidden=true;
-  $('registrationForm').reset();
-  $('parentFullName').focus();
-});
+$('registrationForm').addEventListener('reset',()=>setTimeout(resetChildren,0));
+$('registerAnotherBtn').addEventListener('click',()=>{$('registrationSuccess').hidden=true;$('registrationForm').reset();resetChildren();$('parentFullName').focus()});
 
-function searchAttendees(q,filter='ALL'){q=norm(q);return attendees.filter(a=>(filter==='ALL'||a.type===filter)&&(!q||[a.code,a.fullName,a.location,a.contact,a.linkedPerson,a.familyId].some(v=>norm(v).includes(q))))}
+function searchAttendees(q,filter='ALL'){q=norm(q);return attendees.filter(a=>(filter==='ALL'||a.type===filter)&&(!q||[a.code,a.fullName,a.location,a.contact,a.linkedPerson,a.familyId,a.relationship,a.notes].some(v=>norm(v).includes(q))))}
 
 function updateStats(){
   if(!$('statRegistered'))return;
@@ -138,7 +140,8 @@ function resultCard(a,mode){
   if(mode==='release')action=`<button class="primary-btn" data-action="release" data-id="${a.id}" ${a.stubReleasedAt?'disabled':''}>${a.stubReleasedAt?'Stub Released':'Release Digital Stub'}</button>`;
   if(mode==='food')action=`<button class="primary-btn" data-action="food" data-id="${a.id}" ${a.foodClaimedAt?'disabled':''}>${a.foodClaimedAt?'Food Claimed':'Claim Food'}</button>`;
   if(mode==='raffle')action=a.type==='PARENT'?`<button class="primary-btn" disabled>Parent — No Raffle</button>`:`<button class="primary-btn" data-action="raffle" data-id="${a.id}" ${a.raffleClaimedAt?'disabled':''}>${a.raffleClaimedAt?'Raffle Active':'Activate Raffle'}</button>`;
-  return `<article class="result-card"><div><h3>${esc(a.fullName)} <span class="tag ${a.type==='PARENT'?'red':''}">${typeLabel(a.type)}</span></h3><p>${esc(a.code)} • Age ${a.age} • Family ${esc(a.familyId||'—')}</p><p>${esc(a.contact)} • ${esc(a.location)}</p><p><small>Encoded by: ${esc(a.registeredBy||'—')}</small></p>${statusTags(a)}</div><div class="result-actions">${action}<button class="ghost-btn" data-action="pass" data-id="${a.id}">Pass</button></div></article>`;
+  const relation=a.relationship?` • ${esc(a.relationship)}`:'';
+  return `<article class="result-card"><div><h3>${esc(a.fullName)} <span class="tag ${a.type==='PARENT'?'red':''}">${typeLabel(a.type)}</span></h3><p>${esc(a.code)} • Age ${a.age} • Family ${esc(a.familyId||'—')}${relation}</p><p>${esc(a.contact)} • ${esc(a.location)}</p><p><small>Encoded by: ${esc(a.registeredBy||'—')}</small></p>${statusTags(a)}</div><div class="result-actions">${action}<button class="ghost-btn" data-action="pass" data-id="${a.id}">Pass</button></div></article>`;
 }
 
 function renderSearchResults(targetId,q,mode){
@@ -158,32 +161,14 @@ function byId(id){return attendees.find(a=>a.id===id)}
 function byCode(code){const c=String(code||'').trim().replace(/^CHRISTMASHEARTS\|/i,'');return attendees.find(a=>norm(a.code)===norm(c))}
 function refresh(a){[['release','releaseResults'],['food','foodResults'],['raffle','raffleResults']].forEach(([m,t])=>{const view=$(`view-${m}`);if(view?.classList.contains('active'))renderSearchResults(t,a.code,m)})}
 
-function releaseStub(id){
-  const a=byId(id);if(!a)return;
-  if(a.stubReleasedAt)return toast('Digital stub already released.');
-  a.stubReleasedAt=nowIso();a.stubReleasedBy=currentStaff();
-  logAction('STUB RELEASED',a);save();refresh(a);openPass(id);toast('Digital stub released.');
-}
-
-function claimFood(id){
-  const a=byId(id);if(!a)return;
-  if(!a.stubReleasedAt)return toast('Digital stub must be released first.');
-  if(a.foodClaimedAt)return toast(`Food already claimed ${humanTime(a.foodClaimedAt)}.`);
-  if(settings.foodCapacity&&attendees.filter(x=>x.foodClaimedAt).length>=settings.foodCapacity)return toast('Meal inventory is already at zero.');
-  a.foodClaimedAt=nowIso();a.foodClaimedBy=currentStaff();logAction('FOOD CLAIMED',a);save();refresh(a);toast(`Food claimed for ${a.fullName}.`);
-}
-
-function claimRaffle(id){
-  const a=byId(id);if(!a)return;
-  if(a.type==='PARENT')return toast('Parents / Guardians are not eligible for raffle.');
-  if(!a.stubReleasedAt)return toast('Digital stub must be released first.');
-  if(a.raffleClaimedAt)return toast('Raffle already activated.');
-  a.raffleClaimedAt=nowIso();a.raffleClaimedBy=currentStaff();logAction('RAFFLE ACTIVATED',a);save();refresh(a);toast(`Raffle activated for ${a.fullName}.`);
-}
+function releaseStub(id){const a=byId(id);if(!a)return;if(a.stubReleasedAt)return toast('Digital stub already released.');a.stubReleasedAt=nowIso();a.stubReleasedBy=currentStaff();logAction('STUB RELEASED',a);save();refresh(a);openPass(id);toast('Digital stub released.')}
+function claimFood(id){const a=byId(id);if(!a)return;if(!a.stubReleasedAt)return toast('Digital stub must be released first.');if(a.foodClaimedAt)return toast(`Food already claimed ${humanTime(a.foodClaimedAt)}.`);if(settings.foodCapacity&&attendees.filter(x=>x.foodClaimedAt).length>=settings.foodCapacity)return toast('Meal inventory is already at zero.');a.foodClaimedAt=nowIso();a.foodClaimedBy=currentStaff();logAction('FOOD CLAIMED',a);save();refresh(a);toast(`Food claimed for ${a.fullName}.`)}
+function claimRaffle(id){const a=byId(id);if(!a)return;if(a.type==='PARENT')return toast('Parents / Guardians are not eligible for raffle.');if(!a.stubReleasedAt)return toast('Digital stub must be released first.');if(a.raffleClaimedAt)return toast('Raffle already activated.');a.raffleClaimedAt=nowIso();a.raffleClaimedBy=currentStaff();logAction('RAFFLE ACTIVATED',a);save();refresh(a);toast(`Raffle activated for ${a.fullName}.`)}
 
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-action]');if(!b)return;
   const {action,id}=b.dataset;
+  if(action==='remove-child'){const block=b.closest('.child-entry');if(block){block.remove();renumberChildren()}return}
   if(action==='pass')openPass(id);
   if(action==='release')releaseStub(id);
   if(action==='food')claimFood(id);
@@ -228,8 +213,8 @@ $('recordsFilter').addEventListener('change',renderRecords);
 function csvEsc(v){const s=String(v??'');return /[",\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s}
 function downloadBlob(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
 $('exportCsvBtn').addEventListener('click',()=>{
-  const h=['Code','Full Name','Type','Age','Family ID','Location','Contact','Registered At','Encoded By','Registration Source','Stub Released At','Stub Released By','Food Claimed At','Food Claimed By','Raffle Claimed At','Raffle Claimed By'];
-  const r=attendees.map(a=>[a.code,a.fullName,typeLabel(a.type),a.age,a.familyId,a.location,a.contact,humanTime(a.registeredAt),a.registeredBy,a.registrationSource,humanTime(a.stubReleasedAt),a.stubReleasedBy,humanTime(a.foodClaimedAt),a.foodClaimedBy,humanTime(a.raffleClaimedAt),a.raffleClaimedBy]);
+  const h=['Code','Full Name','Type','Age','Family ID','Relationship','Location','Contact','Special Notes','Registered At','Encoded By','Registration Source','Stub Released At','Stub Released By','Food Claimed At','Food Claimed By','Raffle Claimed At','Raffle Claimed By'];
+  const r=attendees.map(a=>[a.code,a.fullName,typeLabel(a.type),a.age,a.familyId,a.relationship,a.location,a.contact,a.notes,humanTime(a.registeredAt),a.registeredBy,a.registrationSource,humanTime(a.stubReleasedAt),a.stubReleasedBy,humanTime(a.foodClaimedAt),a.foodClaimedBy,humanTime(a.raffleClaimedAt),a.raffleClaimedBy]);
   downloadBlob(new Blob([[h,...r].map(x=>x.map(csvEsc).join(',')).join('\n')],{type:'text/csv'}),'christmas-hearts-2026-attendees.csv');
 });
 
