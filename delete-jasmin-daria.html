@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Remove Jasmin Daria Record</title>
+  <style>
+    :root{font-family:Inter,system-ui,sans-serif;color:#17352b;background:#f6f0e5}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px}
+    main{width:min(560px,100%);background:#fff;border:1px solid #ded5c8;border-radius:22px;padding:26px;box-shadow:0 16px 40px rgba(0,0,0,.1)}
+    h1{margin:0 0 10px;font-size:1.45rem}p{line-height:1.5}.status{margin:18px 0;padding:14px;border-radius:14px;background:#f4efe5}.ok{background:#eaf5ee}.warn{background:#fff3dc}
+    a{display:inline-block;margin-top:8px;padding:12px 16px;border-radius:12px;background:#103b2d;color:#fff;text-decoration:none;font-weight:700}
+  </style>
+</head>
+<body>
+<main>
+  <h1>Jasmin Daria record cleanup</h1>
+  <p>This one-time cleanup removes the exact name <b>Jasmin Daria</b> from this device's CHRISTmas in Our Hearts event records.</p>
+  <div id="status" class="status">Processing…</div>
+  <a href="./">Return to Event System</a>
+</main>
+<script>
+(() => {
+  const ATTENDEES='christmasHearts2026.attendees.v1';
+  const WINNERS='christmasHearts2026.winners.v1';
+  const AUDIT='christmasHearts2026.audit.v1';
+  const FLAG='christmasHearts2026.cleanup.jasminDaria.v1';
+  const target='jasmin daria';
+  const norm=v=>String(v||'').trim().toLowerCase();
+  const read=(k,f=[])=>{try{return JSON.parse(localStorage.getItem(k))??f}catch{return f}};
+  const status=document.getElementById('status');
+
+  if(localStorage.getItem(FLAG)==='done'){
+    status.className='status ok';
+    status.textContent='This cleanup has already been completed on this device.';
+    return;
+  }
+
+  const attendees=read(ATTENDEES,[]);
+  const removed=attendees.filter(a=>norm(a.fullName)===target);
+  const removedIds=new Set(removed.map(a=>a.id));
+  const keptAttendees=attendees
+    .filter(a=>norm(a.fullName)!==target)
+    .map(a=>norm(a.linkedPerson)===target?{...a,linkedPerson:''}:a);
+
+  const winners=read(WINNERS,[]).filter(w=>!removedIds.has(w.id)&&norm(w.name)!==target);
+  const audit=read(AUDIT,[]).filter(x=>!removedIds.has(x.attendeeId)&&norm(x.name)!==target&&norm(x.attendee)!==target);
+
+  localStorage.setItem(ATTENDEES,JSON.stringify(keptAttendees));
+  localStorage.setItem(WINNERS,JSON.stringify(winners));
+  localStorage.setItem(AUDIT,JSON.stringify(audit));
+  localStorage.setItem(FLAG,'done');
+
+  status.className='status '+(removed.length?'ok':'warn');
+  status.textContent=removed.length
+    ? `Deleted ${removed.length} Jasmin Daria record${removed.length===1?'':'s'} from this device.`
+    : 'No exact Jasmin Daria attendee record was found on this device.';
+})();
+</script>
+</body>
+</html>
