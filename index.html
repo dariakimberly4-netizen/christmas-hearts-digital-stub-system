@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#103b2d" />
+  <meta name="description" content="CHRISTmas in Our Hearts 2026 registration, food stub, and raffle system." />
+  <title>CHRISTmas in Our Hearts 2026</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-mark" aria-hidden="true">♥</div>
+      <div>
+        <p class="eyebrow">Heart Warriors Philippines Inc.</p>
+        <h1>CHRISTmas in Our Hearts 2026</h1>
+        <p class="subhead">December 3, 2026 • 1:00 PM • Philippine Heart Center</p>
+      </div>
+      <button class="ghost-btn install-btn" id="installBtn" hidden>Install App</button>
+    </header>
+
+    <main>
+      <section class="stats-grid" aria-label="Event counters">
+        <article class="stat-card"><span>Registered</span><strong id="statRegistered">0</strong></article>
+        <article class="stat-card"><span>Kids</span><strong id="statKids">0</strong></article>
+        <article class="stat-card"><span>Parents</span><strong id="statParents">0</strong></article>
+        <article class="stat-card"><span>Food Claimed</span><strong id="statFood">0</strong></article>
+        <article class="stat-card"><span>Raffle Entries</span><strong id="statRaffle">0</strong></article>
+      </section>
+
+      <nav class="module-grid" aria-label="Main modules">
+        <button class="module-btn active" data-view="register"><span>01</span><b>Registration</b><small>Add kids and parents</small></button>
+        <button class="module-btn" data-view="release"><span>02</span><b>Digital Stub Release</b><small>Open attendee pass</small></button>
+        <button class="module-btn" data-view="food"><span>03</span><b>Food Claim</b><small>One claim per person</small></button>
+        <button class="module-btn" data-view="raffle"><span>04</span><b>Raffle Claim</b><small>Kids only</small></button>
+        <button class="module-btn" data-view="draw"><span>05</span><b>Raffle Draw</b><small>Eligible kids only</small></button>
+        <button class="module-btn" data-view="records"><span>06</span><b>Records & Reports</b><small>Search, export, backup</small></button>
+      </nav>
+
+      <section class="workspace">
+        <div class="view active" id="view-register">
+          <div class="section-heading">
+            <div><p class="eyebrow">Registration</p><h2>Register Attendee</h2></div>
+            <p class="rule-note"><b>Rule:</b> Kids get Food + Raffle. Parents/Guardians get Food only.</p>
+          </div>
+          <form id="registrationForm" class="form-grid" autocomplete="off">
+            <label>Full Name<input id="fullName" name="fullName" required placeholder="First name Last name" /></label>
+            <label>Location / Address<input id="location" name="location" required placeholder="City / Barangay / Address" /></label>
+            <label>Contact Number<input id="contact" name="contact" required inputmode="tel" placeholder="09XXXXXXXXX" /></label>
+            <label>Age<input id="age" name="age" required min="0" max="120" type="number" inputmode="numeric" placeholder="Age" /></label>
+            <label class="full-span">Attendee Type
+              <div class="segmented" role="radiogroup" aria-label="Attendee type">
+                <label><input type="radio" name="attendeeType" value="KID" checked /><span>Kid</span></label>
+                <label><input type="radio" name="attendeeType" value="PARENT" /><span>Parent / Guardian</span></label>
+              </div>
+            </label>
+            <label class="full-span">Linked Parent / Child <small>(optional)</small><input id="linkedPerson" name="linkedPerson" placeholder="Name of accompanying parent or child" /></label>
+            <div class="full-span form-actions">
+              <button class="primary-btn" type="submit">Register & Generate Digital Pass</button>
+              <button class="ghost-btn" type="reset">Clear</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="view" id="view-release">
+          <div class="section-heading"><div><p class="eyebrow">Digital Stub Release</p><h2>Find Attendee</h2></div></div>
+          <div class="search-row">
+            <input id="releaseSearch" placeholder="Search name, attendee code, or number" />
+            <button class="primary-btn" id="releaseSearchBtn">Search</button>
+          </div>
+          <div id="releaseResults" class="results-list empty-state">Search for an attendee to open the digital pass.</div>
+        </div>
+
+        <div class="view" id="view-food">
+          <div class="section-heading"><div><p class="eyebrow">Food Claim</p><h2>Scan or Search</h2></div><p class="rule-note">Every registered person can claim food once.</p></div>
+          <div class="scanner-actions">
+            <button class="primary-btn" data-scan-target="food">Use Camera Scanner</button>
+            <span>or</span>
+            <input id="foodSearch" placeholder="Name or attendee code" />
+            <button class="ghost-btn" id="foodSearchBtn">Find</button>
+          </div>
+          <div id="foodResults" class="results-list empty-state">No attendee selected.</div>
+        </div>
+
+        <div class="view" id="view-raffle">
+          <div class="section-heading"><div><p class="eyebrow">Raffle Claim</p><h2>Kids Only</h2></div><p class="rule-note danger"><b>Parents / Guardians are never eligible for raffle.</b></p></div>
+          <div class="scanner-actions">
+            <button class="primary-btn" data-scan-target="raffle">Use Camera Scanner</button>
+            <span>or</span>
+            <input id="raffleSearch" placeholder="Name or attendee code" />
+            <button class="ghost-btn" id="raffleSearchBtn">Find</button>
+          </div>
+          <div id="raffleResults" class="results-list empty-state">No attendee selected.</div>
+        </div>
+
+        <div class="view" id="view-draw">
+          <div class="section-heading"><div><p class="eyebrow">Raffle Draw</p><h2>Draw From Claimed Kid Entries</h2></div><p class="rule-note">Only kids whose raffle entry has been activated can be drawn.</p></div>
+          <div class="draw-stage">
+            <div class="draw-name" id="drawName">Ready</div>
+            <div class="draw-meta" id="drawMeta">No winner drawn yet.</div>
+            <button class="primary-btn large" id="drawBtn">Draw Winner</button>
+          </div>
+        </div>
+
+        <div class="view" id="view-records">
+          <div class="section-heading"><div><p class="eyebrow">Records & Reports</p><h2>Attendee Masterlist</h2></div></div>
+          <div class="records-toolbar">
+            <input id="recordsSearch" placeholder="Search records" />
+            <select id="recordsFilter" aria-label="Filter attendee type"><option value="ALL">All attendees</option><option value="KID">Kids</option><option value="PARENT">Parents / Guardians</option></select>
+            <button class="ghost-btn" id="exportCsvBtn">Export CSV</button>
+            <button class="ghost-btn" id="backupBtn">Backup JSON</button>
+            <label class="ghost-btn file-btn">Restore JSON<input type="file" id="restoreInput" accept="application/json" /></label>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Code</th><th>Name</th><th>Type</th><th>Age</th><th>Location</th><th>Contact</th><th>Food</th><th>Raffle</th><th>Actions</th></tr></thead>
+              <tbody id="recordsBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="passDialog">
+    <button class="dialog-close" id="closePassBtn" aria-label="Close">×</button>
+    <div class="pass-card" id="passCard">
+      <p class="eyebrow">Official Digital Event Pass</p>
+      <h2>CHRISTmas in Our Hearts</h2>
+      <p class="pass-code" id="passCode"></p>
+      <div id="qrCode" class="qr-box" aria-label="QR code"></div>
+      <h3 id="passName"></h3>
+      <p id="passDetails"></p>
+      <div class="eligibility-grid">
+        <div><span>FOOD</span><b id="passFood">ELIGIBLE</b></div>
+        <div><span>RAFFLE</span><b id="passRaffle">—</b></div>
+      </div>
+      <p class="small-note">Present this pass to staff. Claims are recorded once only.</p>
+    </div>
+    <div class="dialog-actions"><button class="primary-btn" id="printPassBtn">Print / Save Pass</button></div>
+  </dialog>
+
+  <dialog id="scannerDialog">
+    <button class="dialog-close" id="closeScannerBtn" aria-label="Close">×</button>
+    <div class="scanner-panel">
+      <p class="eyebrow">QR Scanner</p>
+      <h2 id="scannerTitle">Scan Attendee Pass</h2>
+      <video id="scannerVideo" playsinline muted></video>
+      <p id="scannerStatus">Starting camera…</p>
+      <div class="manual-code-row"><input id="manualScanCode" placeholder="Or enter attendee code" /><button class="ghost-btn" id="manualScanBtn">Submit</button></div>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
