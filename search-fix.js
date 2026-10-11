@@ -55,14 +55,12 @@
   function installDigitalStubSearchFix() {
     if (typeof attendees === 'undefined' || typeof renderSearchResults !== 'function') return;
 
-    // Keep flexible partial-name searching everywhere else in the system.
     window.searchAttendees = improvedSearch;
 
     const oldInput = document.getElementById('releaseSearch');
     const oldButton = document.getElementById('releaseSearchBtn');
     if (!oldInput || !oldButton) return;
 
-    // Replace these two controls so the old app.js listeners cannot return child results.
     const input = oldInput.cloneNode(true);
     const button = oldButton.cloneNode(true);
     oldInput.replaceWith(input);
@@ -105,4 +103,39 @@
   } else {
     installDigitalStubSearchFix();
   }
+})();
+
+// First-visit demo bootloader. These files used to depend on service-worker
+// HTML injection, which meant a brand-new browser could look unchanged until
+// a second reload. Load them directly from a script that is already in index.html.
+(() => {
+  const extras = [
+    'reliability-tools.js',
+    'family-stub.js',
+    'admin-tools.js',
+    'demo-enhancements.js'
+  ];
+
+  function alreadyLoaded(file) {
+    return [...document.scripts].some(s => {
+      try { return new URL(s.src, location.href).pathname.endsWith('/' + file); }
+      catch { return false; }
+    });
+  }
+
+  function loadOne(file) {
+    if (alreadyLoaded(file)) return Promise.resolve();
+    return new Promise(resolve => {
+      const s = document.createElement('script');
+      s.src = `${file}?v=21`;
+      s.async = false;
+      s.onload = resolve;
+      s.onerror = resolve;
+      document.head.appendChild(s);
+    });
+  }
+
+  (async () => {
+    for (const file of extras) await loadOne(file);
+  })();
 })();
