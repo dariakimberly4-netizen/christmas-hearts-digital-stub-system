@@ -1,7 +1,8 @@
 (()=>{
-  const VERSION='23';
-  let activeWalletTab='stub';
+  const VERSION='24';
+  let activeWalletTab='food';
   let decorating=false;
+  let lastSignature='';
 
   const style=document.createElement('style');
   style.textContent=`
@@ -19,8 +20,9 @@
     .wallet-member-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;text-align:left;margin-bottom:8px}
     .wallet-member-head h4{margin:0;color:#22251f;font-size:1rem}
     .wallet-member-head small{display:block;color:#6f756d;margin-top:3px}
-    .wallet-kind{display:inline-flex;align-items:center;justify-content:center;min-width:78px;padding:5px 8px;border-radius:999px;background:#edf4ef;color:#103b2d;font-size:.67rem;font-weight:900;letter-spacing:.05em}
+    .wallet-kind{display:inline-flex;align-items:center;justify-content:center;min-width:84px;padding:5px 8px;border-radius:999px;font-size:.67rem;font-weight:900;letter-spacing:.05em}
     .wallet-kind.food{background:#f5efe2;color:#7a5b20}
+    .wallet-kind.raffle{background:#f9e7e9;color:#9f2430}
     .wallet-qr{width:184px;height:184px;margin:8px auto;display:grid;place-items:center;background:#fff;border:9px solid #fff;border-radius:15px;box-shadow:0 3px 12px rgba(0,0,0,.08)}
     .wallet-qr canvas,.wallet-qr img{max-width:100%;height:auto}
     .wallet-status{display:inline-block;margin:3px auto 8px;padding:6px 10px;border-radius:999px;font-size:.72rem;font-weight:900;background:#edf4ef;color:#103b2d}
@@ -45,29 +47,44 @@
   function familyId(){return document.getElementById('familyStubCode')?.textContent?.trim()||''}
   function list(){const id=familyId();try{return attendees.filter(a=>a.familyId===id).sort((a,b)=>a.type===b.type?String(a.fullName).localeCompare(String(b.fullName)):a.type==='PARENT'?-1:1)}catch{return []}}
   function role(){try{return currentRole()}catch{return 'UNKNOWN'}}
-  function viewMode(){const id=document.querySelector('.view.active')?.id||'';return id==='view-food'?'food':id==='view-release'?'stub':'stub'}
 
-  function memberCard(a,kind){
-    const isFood=kind==='food';
-    let status='';
-    let statusClass='';
-    let action='';
-    if(isFood){
-      if(a.foodClaimedAt){status='FOOD CLAIMED';statusClass='claimed'}
-      else if(!a.stubReleasedAt){status='LOCKED — RELEASE STUB FIRST';statusClass='locked'}
-      else {status='FOOD AVAILABLE';statusClass='pending'}
-      if(['ADMIN','FOOD'].includes(role())&&!a.foodClaimedAt){
-        action=`<button class="primary-btn" type="button" data-wallet-claim-food="${safeEsc(a.id)}" ${!a.stubReleasedAt?'disabled':''}>${!a.stubReleasedAt?'Food Locked':'Claim Food'}</button>`;
-      }
-    }else{
-      if(a.stubReleasedAt){status='STUB RELEASED';statusClass='claimed'}
-      else {status='STUB PENDING';statusClass='pending'}
+  function signature(items){
+    return `${familyId()}|${items.map(a=>[a.id,a.stubReleasedAt||'',a.foodClaimedAt||'',a.raffleClaimedAt||'',a.type].join(':')).join('|')}`;
+  }
+
+  function foodCard(a){
+    let status='',statusClass='',action='';
+    if(a.foodClaimedAt){status='FOOD CLAIMED';statusClass='claimed'}
+    else if(!a.stubReleasedAt){status='LOCKED — RELEASE FAMILY STUB FIRST';statusClass='locked'}
+    else {status='FOOD AVAILABLE';statusClass='pending'}
+    if(['ADMIN','FOOD'].includes(role())&&!a.foodClaimedAt){
+      action=`<button class="primary-btn" type="button" data-wallet-claim-food="${safeEsc(a.id)}" ${!a.stubReleasedAt?'disabled':''}>${!a.stubReleasedAt?'Food Locked':'Claim Food'}</button>`;
     }
-    const qrId=`wallet-${kind}-qr-${a.id}`;
+    const qrId=`wallet-food-qr-${a.id}`;
     return `<article class="wallet-member">
       <div class="wallet-member-head">
         <div><h4>${safeEsc(a.fullName)}</h4><small>${a.type==='KID'?'Child':'Parent / Guardian'} • ${safeEsc(a.code)}</small></div>
-        <span class="wallet-kind ${isFood?'food':''}">${isFood?'FOOD QR':'STUB QR'}</span>
+        <span class="wallet-kind food">FOOD STUB</span>
+      </div>
+      <div class="wallet-qr" id="${safeEsc(qrId)}"></div>
+      <span class="wallet-status ${statusClass}">${status}</span>
+      ${action}
+    </article>`;
+  }
+
+  function raffleCard(a){
+    let status='',statusClass='',action='';
+    if(a.raffleClaimedAt){status='RAFFLE ACTIVE';statusClass='claimed'}
+    else if(!a.stubReleasedAt){status='LOCKED — RELEASE FAMILY STUB FIRST';statusClass='locked'}
+    else {status='RAFFLE AVAILABLE';statusClass='pending'}
+    if(['ADMIN','RAFFLE'].includes(role())&&!a.raffleClaimedAt){
+      action=`<button class="primary-btn" type="button" data-wallet-claim-raffle="${safeEsc(a.id)}" ${!a.stubReleasedAt?'disabled':''}>${!a.stubReleasedAt?'Raffle Locked':'Activate Raffle'}</button>`;
+    }
+    const qrId=`wallet-raffle-qr-${a.id}`;
+    return `<article class="wallet-member">
+      <div class="wallet-member-head">
+        <div><h4>${safeEsc(a.fullName)}</h4><small>Child • ${safeEsc(a.code)}</small></div>
+        <span class="wallet-kind raffle">RAFFLE STUB</span>
       </div>
       <div class="wallet-qr" id="${safeEsc(qrId)}"></div>
       <span class="wallet-status ${statusClass}">${status}</span>
@@ -83,29 +100,30 @@
     }else q.innerHTML=`<b>${safeEsc(payload.split('|').pop())}</b>`;
   }
 
-  function renderQrs(items,kind){
-    items.forEach(a=>{
-      const payload=kind==='food'?`CHRISTMASHEARTS-FOOD|${a.code}`:`CHRISTMASHEARTS-STUB|${a.code}`;
-      drawQr(`wallet-${kind}-qr-${a.id}`,payload);
-    });
+  function renderQrs(items){
+    items.forEach(a=>drawQr(`wallet-food-qr-${a.id}`,`CHRISTMASHEARTS-FOOD|${a.code}`));
+    items.filter(a=>a.type==='KID').forEach(a=>drawQr(`wallet-raffle-qr-${a.id}`,`CHRISTMASHEARTS-RAFFLE|${a.code}`));
   }
 
   function applyTab(){
     document.querySelectorAll('.family-wallet-tab').forEach(b=>b.classList.toggle('active',b.dataset.walletTab===activeWalletTab));
-    const stub=document.getElementById('familyWalletStubPanel');
     const food=document.getElementById('familyWalletFoodPanel');
-    if(stub)stub.hidden=activeWalletTab!=='stub';
+    const raffle=document.getElementById('familyWalletRafflePanel');
     if(food)food.hidden=activeWalletTab!=='food';
+    if(raffle)raffle.hidden=activeWalletTab!=='raffle';
   }
 
-  function enhance(){
+  function enhance(force=false){
     if(decorating)return;
     const d=document.getElementById('familyStubDialog');
     const card=document.getElementById('familyStubCard');
     if(!d||!card)return;
     const items=list();if(!items.length)return;
+    const sig=signature(items);
+    if(!force&&sig===lastSignature&&document.getElementById('familyWallet')){applyTab();return}
     decorating=true;
     try{
+      const kids=items.filter(a=>a.type==='KID');
       let wallet=document.getElementById('familyWallet');
       if(!wallet){
         wallet=document.createElement('section');
@@ -116,54 +134,75 @@
       wallet.innerHTML=`
         <div class="family-wallet-title">
           <h3>Family QR Wallet</h3>
-          <p>One family record, with separate QR codes for Digital Stub and Food for every family member.</p>
+          <p>One family QR opens separate Food and Raffle stubs for the household.</p>
         </div>
         <div class="family-wallet-tabs">
-          <button class="family-wallet-tab" type="button" data-wallet-tab="stub">DIGITAL STUBS</button>
           <button class="family-wallet-tab" type="button" data-wallet-tab="food">FOOD STUBS</button>
+          <button class="family-wallet-tab" type="button" data-wallet-tab="raffle">RAFFLE STUBS</button>
         </div>
-        <div class="family-wallet-panel" id="familyWalletStubPanel">
-          <p class="wallet-help">Use these QR codes for Digital Stub Release. Each family member has a separate stub QR.</p>
-          ${items.map(a=>memberCard(a,'stub')).join('')}
+        <div class="family-wallet-panel" id="familyWalletFoodPanel">
+          <p class="wallet-help">Parent/Guardian and children each have their own Food QR. One food claim per person.</p>
+          ${items.map(foodCard).join('')}
         </div>
-        <div class="family-wallet-panel" id="familyWalletFoodPanel" hidden>
-          <p class="wallet-help">Use these QR codes only at the Food station. One food claim per person.</p>
-          ${items.map(a=>memberCard(a,'food')).join('')}
+        <div class="family-wallet-panel" id="familyWalletRafflePanel" hidden>
+          <p class="wallet-help">Raffle is for children only. Parents/Guardians do not receive a raffle stub.</p>
+          ${kids.length?kids.map(raffleCard).join(''):'<p class="wallet-help">No child raffle stubs in this family.</p>'}
         </div>`;
       applyTab();
-      renderQrs(items,'stub');
-      renderQrs(items,'food');
+      renderQrs(items);
+      lastSignature=sig;
 
       const instruction=card.querySelector('.family-instruction');
-      if(instruction)instruction.textContent='Scan the Family QR to open this wallet. Then choose DIGITAL STUBS or FOOD STUBS. Every person has a separate QR for each purpose.';
+      if(instruction)instruction.textContent='Scan the Family QR to open this wallet. Choose FOOD STUBS or RAFFLE STUBS. Food is for every registered family member; raffle is for children only.';
     }finally{decorating=false}
   }
 
   document.addEventListener('click',e=>{
     const tab=e.target.closest('[data-wallet-tab]');
-    if(tab){activeWalletTab=tab.dataset.walletTab==='food'?'food':'stub';applyTab();return}
-    const claim=e.target.closest('[data-wallet-claim-food]');
-    if(claim){
-      const id=claim.dataset.walletClaimFood;
+    if(tab){activeWalletTab=tab.dataset.walletTab==='raffle'?'raffle':'food';applyTab();return}
+
+    const food=e.target.closest('[data-wallet-claim-food]');
+    if(food){
+      const id=food.dataset.walletClaimFood;
       try{
         const a=typeof byId==='function'?byId(id):null;
         if(!a)return say('Attendee record not found.');
         if(!['ADMIN','FOOD'].includes(role()))return say('Food Claiming staff access required.');
-        if(!a.stubReleasedAt)return say('Digital stub must be released first.');
+        if(!a.stubReleasedAt)return say('Family stub must be released first.');
         if(a.foodClaimedAt)return say('Food has already been claimed.');
         claimFood(id);
-        setTimeout(enhance,30);
+        lastSignature='';
+        setTimeout(()=>enhance(true),30);
       }catch{return say('Could not process the food claim.')}
+      return;
+    }
+
+    const raffle=e.target.closest('[data-wallet-claim-raffle]');
+    if(raffle){
+      const id=raffle.dataset.walletClaimRaffle;
+      try{
+        const a=typeof byId==='function'?byId(id):null;
+        if(!a)return say('Attendee record not found.');
+        if(a.type==='PARENT')return say('Parents / Guardians are not eligible for raffle.');
+        if(!['ADMIN','RAFFLE'].includes(role()))return say('Raffle Claiming staff access required.');
+        if(!a.stubReleasedAt)return say('Family stub must be released first.');
+        if(a.raffleClaimedAt)return say('Raffle is already active.');
+        claimRaffle(id);
+        lastSignature='';
+        activeWalletTab='raffle';
+        setTimeout(()=>enhance(true),30);
+      }catch{return say('Could not process the raffle stub.')}
     }
   });
 
   const originalOpenFamilyStub=window.openFamilyStub;
   if(typeof originalOpenFamilyStub==='function'){
     window.openFamilyStub=function(id,mode='general'){
-      activeWalletTab=mode==='food'?'food':'stub';
+      activeWalletTab=mode==='raffle'?'raffle':'food';
+      lastSignature='';
       const out=originalOpenFamilyStub(id,mode);
-      setTimeout(enhance,0);
-      setTimeout(enhance,80);
+      setTimeout(()=>enhance(true),0);
+      setTimeout(()=>enhance(),80);
       return out;
     };
   }
@@ -172,7 +211,7 @@
   if(typeof originalHandleScan==='function'){
     window.handleScan=function(code){
       const raw=String(code||'').trim();
-      const typed=raw.match(/^CHRISTMASHEARTS-(STUB|FOOD)\|(CH-1203-[A-Z0-9-]+)$/i);
+      const typed=raw.match(/^CHRISTMASHEARTS-(FOOD|RAFFLE)\|(CH-1203-[A-Z0-9-]+)$/i);
       if(typed){
         const kind=typed[1].toUpperCase();
         const attendeeCode=typed[2].toUpperCase();
@@ -184,19 +223,19 @@
           try{showView('food');renderSearchResults('foodResults',a.code,'food')}catch{}
           return;
         }
-        try{showView('release');renderSearchResults('releaseResults',a.code,'release')}catch{}
+        if(a.type==='PARENT')return say('Parents / Guardians are not eligible for raffle.');
+        try{showView('raffle');renderSearchResults('raffleResults',a.code,'raffle')}catch{}
         return;
       }
       return originalHandleScan(code);
     };
   }
 
-  // Keep the wallet current if another family helper redraws the dialog.
   const observer=new MutationObserver(()=>{
     const d=document.getElementById('familyStubDialog');
-    if(d?.open&&!decorating)setTimeout(enhance,20);
+    if(d?.open&&!decorating)setTimeout(()=>enhance(),20);
   });
   observer.observe(document.body,{childList:true,subtree:true});
 
-  window.refreshFamilyWallet=enhance;
+  window.refreshFamilyWallet=()=>{lastSignature='';enhance(true)};
 })();
