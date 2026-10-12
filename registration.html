@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#103b2d">
+  <title>Registration Station • CHRISTmas in Our Hearts 2026</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:#fffaf0;color:#173d31;font-family:Arial,sans-serif}.card{width:min(520px,100%);background:#fff;border:1px solid #e2ddd3;border-radius:24px;padding:28px;box-shadow:0 14px 38px rgba(0,0,0,.10)}.mark{width:66px;height:66px;border-radius:50%;display:grid;place-items:center;margin:0 auto 16px;background:#103b2d;color:#fff;border:3px solid #c99a42;font-size:28px}.eyebrow{text-align:center;margin:0 0 8px;font-size:.74rem;font-weight:900;letter-spacing:.12em}.title{text-align:center;margin:0;color:#103b2d;font-family:Georgia,serif;font-size:2rem;line-height:1.05}.station{text-align:center;margin:8px 0 22px;font-weight:900;color:#9f2430;letter-spacing:.06em}.notice{padding:13px 14px;border-radius:14px;background:#f5efe2;color:#50544f;line-height:1.5;margin-bottom:18px}.notice b{color:#103b2d}label{display:block;font-weight:800;margin:12px 0 7px}input{width:100%;padding:14px 15px;border:1px solid #d7d2c7;border-radius:12px;font-size:18px;outline:none}input:focus{border-color:#c99a42;box-shadow:0 0 0 3px rgba(201,154,66,.14)}button{width:100%;margin-top:16px;min-height:52px;border:0;border-radius:13px;background:#176448;color:#fff;font-size:17px;font-weight:900;cursor:pointer}.status{min-height:24px;margin-top:14px;font-weight:800;line-height:1.45;text-align:center}.bad{color:#9f2430}.ok{color:#0f5a35}.tiny{margin:16px 0 0;text-align:center;color:#777;font-size:.78rem;line-height:1.4}
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="mark" aria-hidden="true">♥</div>
+    <p class="eyebrow">HEART WARRIORS PHILIPPINES INC.</p>
+    <h1 class="title">CHRISTmas in Our Hearts 2026</h1>
+    <p class="station">REGISTRATION STATION</p>
+    <div class="notice"><b>Registration only.</b><br>Enter the PIN for your Registration account. If this browser does not contain that Registration account, the Administrator PIN can temporarily unlock this Registration station for the demo.</div>
+    <label for="pin">Registration Access PIN</label>
+    <input id="pin" type="password" inputmode="numeric" maxlength="4" autocomplete="one-time-code" placeholder="Enter 4-digit PIN" autofocus>
+    <button id="openBtn" type="button">Open Registration</button>
+    <div id="status" class="status" role="status"></div>
+    <p class="tiny">This page opens Registration only. Food, raffle, records, and admin modules are not shown in this station.</p>
+  </main>
+<script>
+const STAFF_KEY='christmasHearts2026.staff.v1';
+const SESSION_KEY='christmasHearts2026.session';
+function getStaff(){try{return JSON.parse(localStorage.getItem(STAFF_KEY)||'[]')}catch{return[]}}
+async function hashPin(pin){if(crypto.subtle){const b=new TextEncoder().encode(pin);const d=await crypto.subtle.digest('SHA-256',b);return [...new Uint8Array(d)].map(x=>x.toString(16).padStart(2,'0')).join('')}return btoa(pin)}
+async function openRegistration(){
+  const status=document.getElementById('status');
+  const pin=document.getElementById('pin').value.trim();
+  status.className='status';status.textContent='';
+  if(!/^\d{4}$/.test(pin)){status.className+=' bad';status.textContent='Enter a 4-digit PIN.';return}
+  const staff=getStaff();
+  if(!staff.length){status.className+=' bad';status.textContent='No staff account is stored in this browser yet.';return}
+  const h=await hashPin(pin);
+  let match=staff.find(s=>s.role==='REGISTRATION'&&s.pinHash===h);
+  let temporary=false;
+  if(!match){match=staff.find(s=>s.role==='ADMIN'&&s.pinHash===h);temporary=!!match}
+  if(!match){status.className+=' bad';status.textContent='Incorrect Registration or Administrator PIN.';return}
+  const session={id:match.id,name:match.role==='REGISTRATION'?match.name:'Registration',role:'REGISTRATION'};
+  if(temporary)session.authorizedBy=match.name;
+  sessionStorage.setItem(SESSION_KEY,JSON.stringify(session));
+  status.className+=' ok';status.textContent='Opening Registration Station…';
+  setTimeout(()=>location.replace('./?v=31&station=registration&direct=1&fresh='+Date.now()),250);
+}
+document.getElementById('openBtn').addEventListener('click',openRegistration);
+document.getElementById('pin').addEventListener('keydown',e=>{if(e.key==='Enter')openRegistration()});
+</script>
+</body>
+</html>
