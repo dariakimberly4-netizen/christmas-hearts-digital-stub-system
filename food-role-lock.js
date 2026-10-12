@@ -15,13 +15,34 @@
   `;
   document.head.appendChild(style);
 
+  function sessionData(){
+    try{
+      if(typeof session!=='undefined'&&session)return session;
+    }catch{}
+    try{return JSON.parse(sessionStorage.getItem('christmasHearts2026.session')||'null')||{}}catch{return {}}
+  }
+
   function role(){
     try{if(typeof currentRole==='function')return currentRole()}catch{}
-    try{return JSON.parse(sessionStorage.getItem('christmasHearts2026.session')||'null')?.role||'UNKNOWN'}catch{return 'UNKNOWN'}
+    return sessionData().role||'UNKNOWN';
+  }
+
+  function name(){
+    try{if(typeof currentStaff==='function')return currentStaff()}catch{}
+    return sessionData().name||'';
+  }
+
+  function isFoodStation(){
+    const r=String(role()||'').trim().toUpperCase();
+    const n=String(name()||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,' ');
+    // Proper FOOD role is always locked to Food Claim. For the existing demo
+    // account, also treat an account named "food claim" / "food claiming" as
+    // the Food station even if it was accidentally created as Administrator.
+    return r==='FOOD'||/^food claim(?:ing)?$/.test(n)||n==='food claim staff';
   }
 
   function apply(){
-    const isFood=role()==='FOOD';
+    const isFood=isFoodStation();
     document.body.classList.toggle('food-role-only',isFood);
     if(!isFood)return;
 
@@ -31,7 +52,9 @@
     });
 
     document.querySelectorAll('.workspace>.view').forEach(view=>{
-      view.classList.toggle('active',view.id==='view-food');
+      const food=view.id==='view-food';
+      view.hidden=!food;
+      view.classList.toggle('active',food);
     });
 
     const roleLabel=document.getElementById('sessionRole');
@@ -42,11 +65,12 @@
 
     const heading=document.querySelector('#view-food .section-heading h2');
     if(heading)heading.textContent='Food Claim Station';
+
+    try{if(typeof showView==='function')showView('food')}catch{}
   }
 
-  // Re-apply after login and after any app render that could switch views.
   const observer=new MutationObserver(()=>{
-    if(role()==='FOOD')requestAnimationFrame(apply);
+    if(isFoodStation())requestAnimationFrame(apply);
   });
 
   function start(){
@@ -54,6 +78,9 @@
     observer.observe(document.body,{attributes:true,childList:true,subtree:true,attributeFilter:['class','hidden']});
     document.addEventListener('click',()=>setTimeout(apply,0),true);
     window.addEventListener('pageshow',apply);
+    window.addEventListener('storage',apply);
+    setTimeout(apply,100);
+    setTimeout(apply,500);
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});
