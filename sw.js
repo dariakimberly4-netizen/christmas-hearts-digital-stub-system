@@ -1,4 +1,4 @@
-const CACHE='christmas-hearts-2026-v27';
+const CACHE='christmas-hearts-2026-v28';
 const CORE=['./','./index.html','./styles.css','./app.js','./search-fix.js','./pass-actions.js','./family-stub.js','./family-wallet.js','./wallet-open-fix.js','./food-claim-enhancements.js','./food-role-lock.js','./admin-tools.js','./reliability-tools.js','./sync-config.js','./sync-center.js','./demo-enhancements.js','./clear-all-test-data.html','./manifest.webmanifest','./icon.svg'];
 const QR='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
 
@@ -13,7 +13,7 @@ function versionCoreScripts(text){
   const files=['app.js','search-fix.js','pass-actions.js'];
   files.forEach(file=>{
     const escaped=file.replace('.','\\.');
-    text=text.replace(new RegExp(`src=["']${escaped}(?:\\?[^"']*)?["']`,'g'),`src="${file}?v=27"`);
+    text=text.replace(new RegExp(`src=["']${escaped}(?:\\?[^"']*)?["']`,'g'),`src="${file}?v=28"`);
   });
   return text;
 }
@@ -25,17 +25,17 @@ async function transformResponse(request,response){
     let text=await response.text();
     text=versionCoreScripts(text);
     const helperBlock=`
-  <script src="reliability-tools.js?v=27" defer></script>
-  <script src="family-stub.js?v=27" defer></script>
-  <script src="family-wallet.js?v=27" defer></script>
-  <script src="wallet-open-fix.js?v=27" defer></script>
-  <script src="food-claim-enhancements.js?v=27" defer></script>
-  <script src="food-role-lock.js?v=27" defer></script>
-  <script src="admin-tools.js?v=27" defer></script>
-  <script src="demo-enhancements.js?v=27" defer></script>
-  <script src="sync-config.js?v=27" defer></script>
-  <script src="sync-center.js?v=27" defer></script>`;
-    if(!text.includes('food-role-lock.js?v=27'))text=text.replace('</head>',`${helperBlock}\n</head>`);
+  <script src="reliability-tools.js?v=28" defer></script>
+  <script src="family-stub.js?v=28" defer></script>
+  <script src="family-wallet.js?v=28" defer></script>
+  <script src="wallet-open-fix.js?v=28" defer></script>
+  <script src="food-claim-enhancements.js?v=28" defer></script>
+  <script src="food-role-lock.js?v=28" defer></script>
+  <script src="admin-tools.js?v=28" defer></script>
+  <script src="demo-enhancements.js?v=28" defer></script>
+  <script src="sync-config.js?v=28" defer></script>
+  <script src="sync-center.js?v=28" defer></script>`;
+    if(!text.includes('food-role-lock.js?v=28'))text=text.replace('</head>',`${helperBlock}\n</head>`);
     return new Response(text,{status:response.status,statusText:response.statusText,headers:cleanHeaders(response)});
   }
   return response;
